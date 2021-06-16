@@ -16,13 +16,14 @@ def tokenize(data, column):
 		ab = data[column][i] #column is the argument listed above
 
 		print(ab)
+		print()
 	
 		ab =ab.lower() #to lower case
 		ab = re.sub('\d+', ' _num_ ', ab) #removes number
 		ab = re.sub(r'[^\w\s]', ' ', ab) #removes punctuation
 		ab = re.sub(r'\b\w{1,2}\b', '', ab) #removes single and two charachter words
 
-		remove_list = ['the', 'and', 'for', 'with', 'via'] #more words to remove
+		remove_list = [' the ', ' and ', ' for ', ' with ', ' via ', ' are '] #more words to remove
 		for word in remove_list:
 			ab = ab.replace(word, ' ')
 
@@ -30,6 +31,7 @@ def tokenize(data, column):
 
 		tokens = ab.split()
 		print(tokens)
+		print()
 
 
 		data['Tokenized'][i] = tokens
