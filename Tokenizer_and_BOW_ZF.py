@@ -5,7 +5,7 @@ import numpy as np
 
 def token_and_bag(data, column):
  	tokenized_dataframe =tokenize(data, column)
- 	vocab = create_vocab(data,column)
+ 	vocab = create_vocab(data, tokenized_dataframe.columns[len(tokenized_dataframe.columns)-1])
  	final_data =bow(tokenized_dataframe, column, vocab)
  	return final_data
 
@@ -24,8 +24,8 @@ def tokenize(data, column):
 	for i in data.index:
 		ab = data[column][i] #column is the argument passed above
 
-		print(ab)
-		print()
+		#print(ab)
+		#print()
 	
 		ab =ab.lower() #to lower case
 		ab = re.sub('\d+', ' _num_ ', ab) #removes number
@@ -67,8 +67,8 @@ def tokenize(data, column):
 
 
 		tokens = ab.split()
-		print(tokens)
-		print()
+		#print(tokens)
+		#print()
 
 
 		data['Tokenized'][i] = tokens
@@ -88,14 +88,11 @@ def create_vocab(data, column):
 		new_tokens = token_set - vocab_set
 		vocab = vocab + list(new_tokens)
 
-	print("here is the vocab")
-	print(vocab)
+	#print("here is the vocab")
+	#print(vocab)
 
 
 	return vocab
-
-
-
 
 
 
@@ -115,15 +112,12 @@ def bow(data,column, vocab):
 
 
 
-
 def vectorize(tokens,vocab):
 	vector = []
 	for word in vocab:
 		vector.append(tokens.count(word))
 
 	return vector
-
-
 
 
 
