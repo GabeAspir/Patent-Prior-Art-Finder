@@ -1,3 +1,3 @@
 # Patent-Prior-Art-Finder
-##YU-Team-Blue
+## YU-Team-Blue
 For Summer 2021
