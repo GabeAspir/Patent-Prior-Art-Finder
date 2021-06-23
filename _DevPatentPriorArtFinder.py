@@ -1,6 +1,7 @@
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import re
+import math
 
 #Gabe
 def init(csv, publicationNumberColumnString, comparisonColumnString):
@@ -57,19 +58,18 @@ def _tokenizeText(string):
 
 	lowercasedString = string.lower()
     #To split based on white space and random charactars
-    stringArray = re.split('\W+', lowercasedString)
+	stringArray = re.split('\W+', lowercasedString)
     #Will substitute numbers for _NUM_
-    stringArray[:]= [re.sub(r"[0-9]+","_NUM_",s) for s in stringArray]
+	stringArray[:]= [re.sub(r"[0-9]+","_NUM_",s) for s in stringArray]
     #Will filter out 1 letter words like "I" and "a"
-    stringArray = list(filter (lambda s: len (s) > 1, stringArray))
+	stringArray = list(filter (lambda s: len (s) > 1, stringArray))
 
-    for word in stringArray:
-    	if word in remove_list:
-    		stringArray.remove(word)
+	for word in stringArray:
+		if word in remove_list:stringArray.remove(word)
 
 
     #Will return a List/Array
-    return stringArray
+	return stringArray
 
 
 
@@ -137,7 +137,7 @@ def _TFIDFize(dataframe, corpus):
 	#for each set of tokens, creates a vector of tf-idf values and adds it to the new column
 	for i in data.index:
 		tokens = dataframe['Tokens'][i]
-		vector = vectorize_tf_idf(dataframe,tokens,corpus)
+		vector = _vectorize_tf_idf(dataframe,tokens,corpus)
 		dataframe['TF-IDF'][i] =vector
 
 def _vectorize_tf_idf(data,tokens,corpus):
@@ -145,7 +145,7 @@ def _vectorize_tf_idf(data,tokens,corpus):
 	for word in corpus:
 		#tf: number of times word appears in tokens for this abstract over the amounf of (tokenized) words in the patent
 		tf = tokens.count(word)/len(tokens)
-		number_of_patents_with_word =appearences(data, word)
+		number_of_patents_with_word =_appearences(data, word)
 
 		#idf: the log of the amount of documents divided by the number of patents with the word
 		idf = math.log(float(len(data))/ number_of_patents_with_word)
@@ -183,15 +183,6 @@ def jaccardTable(dataframe):
 # accepts vector bag of words
 def jaccardSimilarity(patent1, patent2):
 	count = 0
-	# counting the number of total words combined between both of them
-	for x in range(len(patent1)):
-		if patent1[x] != 0 or patent2[x] != 0:  # not equaling 0 means that it occurs at least once
-			count += 1
-	numerator = 0
-
-# accepts vector bag of words
-def jaccardSimilarity(patent1, patent2):
-	count = 0
 
 	# counting the number of total words combined between both of them
 	for x in range(len(patent1)):
@@ -211,7 +202,7 @@ def cosineSimilarity(patent1, patent2):
 	v1 = np.array(patent1).reshape(1, -1)
 	v2 = np.array(patent2).reshape(1, -1)
 	return cs(v1, v2)[0][0]
->>>>>>> 1cc79af81001e248e7126b9a1d8111a0955b1421
+
 
 
 def cosineTable(dataframe):
@@ -242,3 +233,9 @@ def compareNewPatent(newComparisonText, dataframe):
 	return df
 
 
+
+
+
+
+patents = pd.read_csv(r'C:\Users\zacha\OneDrive\Documents\Computer Science\YU CS 2021\TenNewPatents.csv')
+init(patents,'Publication_Number', 'Abstract')
