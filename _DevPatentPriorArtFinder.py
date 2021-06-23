@@ -61,10 +61,6 @@ def jaccardTable(dataframe):
 def jaccardSimilarity(patent1,patent2):
 	return num
 
-#Ephraim
-def cosineSimilarity(patent1, patent2):
-	return  num
-
 
 def cosineTable(dataframe):
 	vals = [list(row.values()) for row in dataframe['BagOfWords']] #get all the wordCount vectors as lists of numbers
