@@ -1,5 +1,5 @@
 from sklearn.metrics.pairwise import cosine_similarity
-import pandas
+import pandas as pd
 
 #Gabe
 def init(csv, publicationNumberColumnString, comparisonColumnString):
@@ -68,7 +68,7 @@ def cosineSimilarity(patent1, patent2):
 
 
 def cosineTable(dataframe):
-	newTable = pandas.DataFrame(cosine_similarity(dataframe['BagOfWords']))
+	newTable = pd.DataFrame(cosine_similarity(dataframe['BagOfWords']))
 	newTable.columns = dataframe['Publication_Number']
 	newTable.index = dataframe['Publication_Number']
 	return newTable
