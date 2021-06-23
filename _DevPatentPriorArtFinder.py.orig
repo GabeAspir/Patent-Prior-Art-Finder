@@ -32,8 +32,15 @@ def _createNewCorpus(dataframe, newTokens):
 	corpus = []
 
 	for i in dataframe.index:
+<<<<<<< HEAD
+		tokens = dataframe['Tokens'][i]
+||||||| b781a5f
+		tokens = dataframe['Tokenized'][i]
+
+=======
 		tokens = dataframe['Tokens'][i]
 
+>>>>>>> 1cc79af81001e248e7126b9a1d8111a0955b1421
 		#Only adds the new words by converting the lists into sets (no doubles)
 		#Then finding the new words by subtracting one set (a) from another set (b)
 		#then adds back in the new words that were in (b) and not in (a), back into a
@@ -104,6 +111,7 @@ def _appearences(data, word):
 
 # Zach
 def jaccardTable(dataframe):
+<<<<<<< HEAD
 	table = pd.DataFrame(patents['PublicationNumber'])  # creating a new table
 	for bow, n in zip(dataframe['Bag of Words'], dataframe['PublicationNumber']):  # iterating through both at same time
 		number = n  # getting the publication number so can use it as header later on
@@ -111,8 +119,19 @@ def jaccardTable(dataframe):
 		for b in dataframe['Bag of Words']:  # getting the other bag of words
 			comps.append(jaccardSimilarity(bow, b))  # applying jaccard similarity to the 2 BOWs
 		table[n] = comps  # adding this new column, n is the publication number from above
-
 	return newTable
+
+||||||| b781a5f
+
+=======
+	table = pd.DataFrame(patents['PublicationNumber'])  # creating a new table
+	for bow, n in zip(dataframe['Bag of Words'], dataframe['PublicationNumber']):  # iterating through both at same time
+		number = n  # getting the publication number so can use it as header later on
+		comps = []  # series that represents this bag of word's cosine comp with all bow's
+		for b in dataframe['Bag of Words']:  # getting the other bag of words
+			comps.append(jaccardSimilarity(bow, b))  # applying jaccard similarity to the 2 BOWs
+		table[n] = comps  # adding this new column, n is the publication number from above
+>>>>>>> 1cc79af81001e248e7126b9a1d8111a0955b1421
 
 
 # accepts vector bag of words
@@ -124,10 +143,26 @@ def jaccardSimilarity(patent1, patent2):
 			count += 1
 	numerator = 0
 
+<<<<<<< HEAD
+	# Counting the number of words in both
+	for x in range(len(patent1)):
+		if patent1[x] != 0 and patent2[x] != 0:
+			numerator += 1
+||||||| b781a5f
+def jaccardSimilarity(patent1,patent2):
+	return num
+=======
 # accepts vector bag of words
 def jaccardSimilarity(patent1, patent2):
 	count = 0
+>>>>>>> 1cc79af81001e248e7126b9a1d8111a0955b1421
 
+<<<<<<< HEAD
+	return (numerator / count)
+||||||| b781a5f
+#Ephraim
+def cosineSimilarity(patent1, patent2):
+=======
 	# counting the number of total words combined between both of them
 	for x in range(len(patent1)):
 		if patent1[x] != 0 or patent2[x] != 0:  # not equaling 0 means that it occurs at least once
@@ -140,6 +175,17 @@ def jaccardSimilarity(patent1, patent2):
 			numerator += 1
 
 	return (numerator / count)
+>>>>>>> 1cc79af81001e248e7126b9a1d8111a0955b1421
+
+<<<<<<< HEAD
+# Zach
+def cosineSimilarity(patent1, patent2):
+	v1 = np.array(patent1).reshape(1, -1)
+	v2 = np.array(patent2).reshape(1, -1)
+	return cs(v1, v2)[0][0]
+||||||| b781a5f
+	return  num
+=======
 
 # Zach
 def cosineSimilarity(patent1, patent2):
