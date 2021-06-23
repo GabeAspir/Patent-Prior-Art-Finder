@@ -16,7 +16,7 @@ def init(csv, publicationNumberColumnString, comparisonColumnString):
 	_tokenize(dataframe)
 	corpus = _createCorpus(dataframe)
 	_bagOfWordize(dataframe, corpus)
-	_TF_IDFize(dataframe, corpus)
+	_TFIDFize(dataframe, corpus)
 
 	return dataframe
 
@@ -135,7 +135,7 @@ def _TFIDFize(dataframe, corpus):
 	dataframe.insert(len(dataframe.columns), 'TF-IDF', '')
 
 	#for each set of tokens, creates a vector of tf-idf values and adds it to the new column
-	for i in data.index:
+	for i in dataframe.index:
 		tokens = dataframe['Tokens'][i]
 		vector = _vectorize_tf_idf(dataframe,tokens,corpus)
 		dataframe['TF-IDF'][i] =vector
@@ -236,6 +236,3 @@ def compareNewPatent(newComparisonText, dataframe):
 
 
 
-
-patents = pd.read_csv(r'C:\Users\zacha\OneDrive\Documents\Computer Science\YU CS 2021\TenNewPatents.csv')
-init(patents,'Publication_Number', 'Abstract')
