@@ -1,5 +1,5 @@
-
-
+from sklearn.metrics.pairwise import cosine_similarity
+import pandas as pd
 
 #Gabe
 def init(csv, publicationNumberColumnString, comparisonColumnString):
@@ -98,42 +98,20 @@ def _appearences(data, word):
 
 #Zach
 def jaccardTable(dataframe):
-	table = pd.DataFrame(patents['PublicationNumber']) #creating a new table
-	for bow, n in zip(dataframe['Bag of Words'], dataframe['PublicationNumber']): #iterating through both at same time
-		number = n #getting the publication number so can use it as header later on 
-		comps = [] #series that represents this bag of word's cosine comp with all bow's
-		for b in dataframe['Bag of Words']: #getting the other bag of words
-			comps.append(jaccardSimilarity(bow,b)) #applying jaccard similarity to the 2 BOWs
-		table[n]= comps #adding this new column, n is the publication number from above
+
 
 	return newTable
 
-#accepts vector bag of words
+
 def jaccardSimilarity(patent1,patent2):
-	count = 0
-
-	#counting the number of total words combined between both of them
-	for x in range(len(patent1)):
-		if patent1[x] != 0 or  patent2[x]!=0: #not equaling 0 means that it occurs at least once
-			count+=1
-	numerator = 0
-
-	#Counting the number of words in both
-	for x in range(len(patent1)):
-		if patent1[x] !=0 and patent2[x] !=0:
-			numerator+=1
-
-	return (numerator/count) 
-	
-
-#Zach
-def cosineSimilarity(patent1, patent2):
-	v1 = np.array(patent1).reshape(1,-1)
-	v2 = np.array(patent2).reshape(1,-1)
-	return cs(v1, v2)[0][0]
-	
+	return num
 
 #Ephraim
+def cosineSimilarity(patent1, patent2):
+
+	return  num
+
+
 def cosineTable(dataframe):
 
 	return newTable
@@ -142,22 +120,7 @@ def cosineTable(dataframe):
 #Comparing new patent based on TF-IDF/Cosine Similarity
 #dataframe must have TF-IDF column
 def compareNewPatent(newComparisonText, dataframe):
-	text = _tokenizeText(text) 
-	new_tokens = _tokenizeText(newComparisonText)
-	new_corpus = _createCorpus(dataframe, new_tokens) # has to create new corpus
-	new_vector = _vectorize_tf_idf(dataframe, new_tokens, new_corpus) #gets a vector with the tf-idf values of new text
-
-	tuples = [] 
-
-	for pn,vec in zip(dataframe['PublicationNumber'], dataframe['TF-IDF']): #iterates through both of these columns at same time
-		similarity = cosineSimilarity(new_vector,vec) #compares new TF-IDF vector to the ones in dataframe
-		tuples.append([pn,similarity]) #adds to the tuples, contains the patent number and similarity
-	tuples = sorted(tuples, key=lambda similarity: similarity[1], reverse = True)  #sort the tuples based off of similarity
-	df = pd.DataFrame(tuples, columns = ['Publication Number', 'Similarity']) #turns the sorted tuple into a pandas dataframe
-
-
-	return df
-
-
+	#UpdateCorpus
+	return newRanking #with two columns
 
 
