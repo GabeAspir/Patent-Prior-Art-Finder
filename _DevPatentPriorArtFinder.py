@@ -35,11 +35,11 @@ def _createNewCorpus(dataframe, newTokens):
 def _bagOfWordize(dataframe, corpus):
 	counts = []
 	for row in dataframe['Tokens']:
-		count = {} # Initialize count as an empty map
+		count = [] # Initialize count as an empty list
 		for word in corpus:
-			count[word] = row.count(word) #get the wordcount in each list of words, and record the count
-		counts.append(count) # Each list of countMaps represents one document, and the counts variable is the list of all our docs' counts
-		dataframe['BagOfWords'] = counts
+			count.append(row.count(word)) #get the wordcount in each list of words, and record the count
+		counts.append(count) # Each list of wordCount vectors represents one document, and the counts variable is the list of all our docs' counts
+	dataframe['BagOfWords'] = counts
 
 #Zach
 def _TFIDFize(dataframe, Corpus):
@@ -61,10 +61,14 @@ def jaccardTable(dataframe):
 def jaccardSimilarity(patent1,patent2):
 	return num
 
+#Ephraim
+def cosineSimilarity(patent1, patent2):
+
+	return  num
+
 
 def cosineTable(dataframe):
-	vals = [list(row.values()) for row in dataframe['BagOfWords']] #get all the wordCount vectors as lists of numbers
-	newTable = pandas.DataFrame(cosine_similarity(vals))
+	newTable = pandas.DataFrame(cosine_similarity(dataframe['BagOfWords']))
 	newTable.columns = dataframe['Publication_Number']
 	newTable.index = dataframe['Publication_Number']
 	return newTable
