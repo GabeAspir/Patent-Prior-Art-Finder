@@ -31,7 +31,7 @@ def _createCorpus(dataframe):
 def _createNewCorpus(dataframe, newTokens):
 	corpus = []
 
-	for i in dataframe.index: 
+	for i in dataframe.index:
 		tokens = dataframe['Tokenized'][i]
 
 		#Only adds the new words by converting the lists into sets (no doubles)
@@ -53,10 +53,16 @@ def _createNewCorpus(dataframe, newTokens):
 
 
 
-#Ephraim
-def _bagOfWordize(dataframe, Corpus): 
-
-	#Will add column called 'BagOfWords'
+# Ephraim
+# Will add column called 'BagOfWords' to dataframe
+def _bagOfWordize(dataframe, corpus):
+	counts = []
+	for row in dataframe['Tokens']:
+		count = [] # Initialize count as an empty list
+		for word in corpus:
+			count.append(row.count(word)) #get the wordcount in each list of words, and record the count
+		counts.append(count) # Each list of wordCount vectors represents one document, and the counts variable is the list of all our docs' counts
+	dataframe['BagOfWords'] = counts
 
 #Zach
 def _TFIDFize(dataframe, corpus):
@@ -73,11 +79,11 @@ def _vectorize_tf_idf(data,tokens,corpus):
 	v = []
 	for word in corpus:
 		#tf: number of times word appears in tokens for this abstract over the amounf of (tokenized) words in the patent
-		tf = tokens.count(word)/len(tokens) 
-		number_of_patents_with_word =appearences(data, word) 
+		tf = tokens.count(word)/len(tokens)
+		number_of_patents_with_word =appearences(data, word)
 
 		#idf: the log of the amount of documents divided by the number of patents with the word
-		idf = math.log(float(len(data))/ number_of_patents_with_word) 
+		idf = math.log(float(len(data))/ number_of_patents_with_word)
 		v.append(tf*idf)
 	return v
 
@@ -89,7 +95,7 @@ def _appearences(data, word):
 			number +=1
 
 	return number
-	
+
 
 
 
@@ -113,6 +119,9 @@ def cosineSimilarity(patent1, patent2):
 
 
 def cosineTable(dataframe):
+	newTable = pd.DataFrame(cosine_similarity(dataframe['BagOfWords']))
+	newTable.columns = dataframe['Publication_Number']
+	newTable.index = dataframe['Publication_Number']
 
 	return newTable
 
