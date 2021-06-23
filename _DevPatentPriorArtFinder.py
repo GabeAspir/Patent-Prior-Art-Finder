@@ -1,6 +1,5 @@
-
-
-
+from sklearn.metrics.pairwise import cosine_similarity
+import pandas
 
 #Gabe
 def init(csv, publicationNumberColumnString, comparisonColumnString):
@@ -31,10 +30,16 @@ def _createCorpus(dataframe):
 #Zach
 def _createNewCorpus(dataframe, newTokens):
 
-#Ephraim
-def _bagOfWordize(dataframe, Corpus): 
-
-	#Will add column called 'BagOfWords'
+# Ephraim
+# Will add column called 'BagOfWords' to dataframe
+def _bagOfWordize(dataframe, corpus):
+	counts = []
+	for row in dataframe['Tokens']:
+		count = {} # Initialize count as an empty map
+		for word in corpus:
+			count[word] = row.count(word) #get the wordcount in each list of words, and record the count
+		counts.append(count) # Each list of countMaps represents one document, and the counts variable is the list of all our docs' counts
+		dataframe['BagOfWords'] = counts
 
 #Zach
 def _TFIDFize(dataframe, Corpus):
@@ -62,7 +67,10 @@ def cosineSimilarity(patent1, patent2):
 
 
 def cosineTable(dataframe):
-
+	vals = [list(row.values()) for row in dataframe['BagOfWords']] #get all the wordCount vectors as lists of numbers
+	newTable = pandas.DataFrame(cosine_similarity(vals))
+	newTable.columns = dataframe['Publication_Number']
+	newTable.index = dataframe['Publication_Number']
 	return newTable
 
 #Zach
