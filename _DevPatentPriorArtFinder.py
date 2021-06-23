@@ -32,7 +32,7 @@ def _createNewCorpus(dataframe, newTokens):
 	corpus = []
 
 	for i in dataframe.index:
-		tokens = dataframe['Tokenized'][i]
+		tokens = dataframe['Tokens'][i]
 
 		#Only adds the new words by converting the lists into sets (no doubles)
 		#Then finding the new words by subtracting one set (a) from another set (b)
