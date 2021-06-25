@@ -2,6 +2,8 @@
 *.class
 
 
+*.idea
+
 ZachFishFolder/
 
 # Log file
