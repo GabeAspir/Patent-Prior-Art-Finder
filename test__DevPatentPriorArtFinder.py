@@ -1,4 +1,7 @@
 from unittest import TestCase
+
+from scipy.constants import pt
+
 import _DevPatentPriorArtFinder as paf
 import pandas as pd
 import re
@@ -101,43 +104,44 @@ class Test(TestCase):
                       "hadn't", 'hasn', "hasn't", 'haven', "haven't", 'isn', "isn't", 'ma', 'mightn', "mightn't",
                       'mustn', "mustn't", 'needn', "needn't", 'shan', "shan't", 'shouldn', "shouldn't", 'wasn',
                       "wasn't", 'weren', "weren't", 'won', "won't", 'wouldn', "wouldn't"}
-        df= pd.read_csv(aCSV)
+
+        def tokenize(string):
+            out = string.lower()
+            out = re.sub(r'\b\w{1,2}\b', '', out)  # remove anything not a word of length 2+
+            out = re.sub(r"[0-9]+", "_NUM_", out)  # substitute _NUM_ for any block of consecutive number chars
+            words = re.split('\W+', out)  # Might need to change to pandas split at some point
+            # Note capital W is "Not word"= [a-zA-Z0-9_]
+            words = list(filter(lambda s: s not in stop_words, words))  # why list not set?  ¯\_(ツ)_/¯
+            return words
+
+        def tokenizer(dataframe):
+            dataframe['Tokens'] = dataframe['Publication_Number']  # Create column to be replaced with tokenized text
+            for index, row in pt.iterrows():
+                dataframe['Tokens'][index] = tokenize(dataframe['Abstract'][index])
+
+        def getCorpus(dataframe):
+            corpus = set()
+            for r in dataframe['Tokens']:
+                corpus.update(r)
+            return corpus
+
+        def bow(series, corpus=None):  # Takes a tokenized series
+            if corpus is None:
+                corpus = getCorpus(series)
+            counts = []
+            for r in series:
+                count = {}
+                for w in corpus:
+                    count[w] = r.count(w)
+                counts.append(count)
+            return counts
+
+        def getTf(dataframe):
+            documents = dataframe['Abstract']
+            tfidf = TfidfVectorizer().fit_transform(documents)
+            return tfidf
+
+        df = pd.read_csv(aCSV)
         df['Tokens'] = tokenizer(df[docCol])
         df['BagOfWords'] = bow(df['Tokenized'])
         df['TF-IDF'] = getTf(df)
-
-    def tokenize(string):
-        out = string.lower()
-        out = re.sub(r'\b\w{1,2}\b', '', out)  # remove anything not a word of length 2+
-        out = re.sub(r"[0-9]+", "_NUM_", out)  # substitute _NUM_ for any block of consecutive number chars
-        words = re.split('\W+', out)  # Might need to change to pandas split at some point
-        # Note capital W is "Not word"= [a-zA-Z0-9_]
-        words = list(filter(lambda s: s not in stop_words, words))  # why list not set?  ¯\_(ツ)_/¯
-        return words
-
-    def tokenizer(dataframe):
-        dataframe['Tokens'] = dataframe['Publication_Number']  # Create column to be replaced with tokenized text
-        for index, row in pt.iterrows():
-            dataframe['Tokens'][index] = tokenize(dataframe['Abstract'][index])
-
-    def getCorpus(dataframe):
-        corpus = set()
-        for r in dataframe['Tokens']:
-            corpus.update(r)
-        return corpus
-
-    def bow(series, corpus=None):  # Takes a tokenized series
-        if corpus is None:
-            corpus = getCorpus(series)
-        counts = []
-        for r in series:
-            count = {}
-            for w in corpus:
-                count[w] = r.count(w)
-            counts.append(count)
-        return counts
-
-    def getTf(dataframe):
-        documents = dataframe['Abstract']
-        tfidf = TfidfVectorizer().fit_transform(documents)
-        return tfidf
