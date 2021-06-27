@@ -13,8 +13,8 @@ def init(csv, publicationNumberColumnString, comparisonColumnString):
     # Dataframe will be created
 
     dataframe = pd.read_csv(csv)
-    dataframe = dataframe.rename(columns={'PublicationNumber': publicationNumberColumnString})
-    dataframe = dataframe.rename(columns={'Abstract': comparisonColumnString})
+    dataframe.rename(columns={publicationNumberColumnString: 'PublicationNumber'}, inplace=True)
+    dataframe.rename(columns={comparisonColumnString: 'Abstract'}, inplace=True)
 
     _tokenize(dataframe)
     corpus = _createCorpus(dataframe)
@@ -176,10 +176,10 @@ def _appearences(data, word):
 # Zach
 def jaccardTable(dataframe):
     table = pd.DataFrame(dataframe['PublicationNumber'])  # creating a new table
-    for bow, n in zip(dataframe['Bag of Words'], dataframe['PublicationNumber']):  # iterating through both at same time
+    for bow, n in zip(dataframe['BagOfWords'], dataframe['PublicationNumber']):  # iterating through both at same time
         number = n  # getting the publication number so can use it as header later on
         comps = []  # series that represents this bag of word's cosine comp with all bow's
-        for b in dataframe['Bag of Words']:  # getting the other bag of words
+        for b in dataframe['BagOfWords']:  # getting the other bag of words
             comps.append(jaccardSimilarity(bow, b))  # applying jaccard similarity to the 2 BOWs
         table[n] = comps  # adding this new column, n is the publication number from above
 
