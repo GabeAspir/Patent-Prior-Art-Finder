@@ -271,10 +271,16 @@ class _DevPatentPriorArtFinder:
 
         tuples = []
 
+        # The following 3 lines are Ephraim's simplified implementation to replace the for loop that follows. The sorting and onwards is not replaced here.
+        new_pat_vec = [new_vector for row in dataframe['BagOfWords']] # Create a 2d list where each line is the new_vector data, length matching our dataframe
+        new_comparison = cosine_similarity(dataframe['BagOfWords'].tolist(), new_pat_vec)
+        tuples = [[name,sim] for name,sim in zip(dataframe[id_col],new_comparison[0])]
+
         for pn, vec in zip(dataframe[id_col],
                            dataframe['TF-IDF']):  # iterates through both of these columns at same time
             similarity = self.cosineSimilarity(new_vector, vec)  # compares new TF-IDF vector to the ones in dataframe
             tuples.append([pn, similarity])  # adds to the tuples, contains the patent number and similarity
+
         tuples = sorted(tuples, key=lambda similarity: similarity[1],
                         reverse=True)  # sort the tuples based off of similarity
         df = pd.DataFrame(tuples,
