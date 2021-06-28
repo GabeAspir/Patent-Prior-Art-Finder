@@ -263,9 +263,8 @@ class _DevPatentPriorArtFinder:
         :return: A new pandas dataframe with similarity metrics using cosine similarity based on the tfidf vectors
         """
 
-        text = self._tokenizeText(newComparisonText)
         new_tokens = self._tokenizeText(newComparisonText)
-        new_corpus = self._createCorpus(dataframe, new_tokens)  # has to create new corpus
+        new_corpus = self._createCorpus(dataframe)  # has to create new corpus
         new_vector = self._vectorize_tf_idf(dataframe, new_tokens,
                                        new_corpus)  # gets a vector with the tf-idf values of new text
 
