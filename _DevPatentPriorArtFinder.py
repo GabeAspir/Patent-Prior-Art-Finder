@@ -210,11 +210,11 @@ def cosineSimilarity(patent1, patent2):
     v2 = np.array(patent2).reshape(1, -1)
     return cosine_similarity(v1, v2)[0][0]
 
-
+# Ephraim
 def cosineTable(dataframe):
-    newTable = pd.DataFrame(cosine_similarity(dataframe['BagOfWords']))
-    newTable.columns = dataframe['Publication_Number']
-    newTable.index = dataframe['Publication_Number']
+    newTable = pd.DataFrame(cosine_similarity(dataframe['BagOfWords'].tolist()))
+    newTable.columns = dataframe['PublicationNumber']
+    newTable.index = dataframe['PublicationNumber']
 
     return newTable
 
