@@ -12,7 +12,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 class Test(TestCase):
 
-    myCsv = open("Patents/Day2-GoldSet.csv","r")
+    myCsv = open("../Patents/Day2-GoldSet.csv", "r")
     # def test_init(self):
     #     self.assertEqual(setup(),paf.init(aCsv))
     test_table = []

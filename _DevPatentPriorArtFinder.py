@@ -1,4 +1,3 @@
-
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import numpy as np
@@ -6,238 +5,286 @@ import re
 import math
 
 
-# Gabe
-def init(csv, publicationNumberColumnString, comparisonColumnString):
-    # Column Headers for dataframe:
-    # PublicationNumber #Abstract
-    # Dataframe will be created
+class _DevPatentPriorArtFinder:
+    global id_col, txt_col
+    # Gabe
+    def init(self, csv, publicationNumberColumnString='PublicationNumber', comparisonColumnString='Abstract'):
+        """
+        Prepares csv patents data for similarity functions by creating a pandas dataframe that can be passed to the desired function.
 
-    dataframe = pd.read_csv(csv)
-    dataframe.rename(columns={publicationNumberColumnString: 'PublicationNumber'}, inplace=True)
-    dataframe.rename(columns={comparisonColumnString: 'Abstract'}, inplace=True)
+        - Renames publicationNumberColumnString, comparisonColumnString to 'PublicationNumber' and 'Abstract', respectivly
+        - Adds a tokenized representation of the 'Abstract' columns, removing stop words, punctuation, and making all chars lowercase. Numbers are replaced with _NUM_
+        - Adds a bag of words vector representing the wordcount (dense) of each document for every word in the corpus
+        - Adds a vector representing the tfidf values for each document
 
-    _tokenize(dataframe)
-    corpus = _createCorpus(dataframe)
-    _bagOfWordize(dataframe, corpus)
-    _TFIDFize(dataframe, corpus)
+        :param csv: Takes a csv file meant to represent a collection of patents
+        :param publicationNumberColumnString: Optional, set by default to 'PublicationNumber'. The name of the column that contains the number of the patents, serves as an ID for that patent in output.
+        :param comparisonColumnString: Optional, set by default to 'Abstract'. The name of the column that contains the patents' text, this is the data that is actually processed.
+        :return: returns a pandas dataframe that adds relevant metadata to the patents. This metadata is later used for the similarity methods.
+        """
+        # Column Headers for dataframe:
+        # PublicationNumber #Abstract
+        # Dataframe will be created
+        global id_col, txt_col
+        id_col = publicationNumberColumnString
+        txt_col = comparisonColumnString
+        dataframe = pd.read_csv(csv)
+        # dataframe.rename(columns={publicationNumberColumnString: 'PublicationNumber'}, inplace=True)
+        # dataframe.rename(columns={comparisonColumnString: 'Abstract'}, inplace=True)
 
-    return dataframe
+        self._tokenize(dataframe)
+        corpus = self._createCorpus(dataframe)
+        self._bagOfWordize(dataframe, corpus)
+        self._TFIDFize(dataframe, corpus)
 
+        return dataframe
 
-# Private methods for init to call
-# Gabe
-def _tokenize(dataframe):
-    dataframe['Tokens'] = dataframe['Abstract'].apply(_tokenizeText)
+    # Private methods for init to call
+    # Gabe
+    def _tokenize(self,dataframe):
+        dataframe['Tokens'] = dataframe[txt_col].apply(self._tokenizeText)
 
+    # Will add column to dataframe called 'Tokens'
+    # Gabe
+    def _tokenizeText(self,string):
 
-# Will add column to dataframe called 'Tokens'
-# Gabe
-def _tokenizeText(string):
+        def filterOut(word):
+            remove_list = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours',
+                           'ourselves', 'you', "you're", "you've", "you'll", "you'd",
+                           'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his',
+                           'himself', 'she', "she's", 'her', 'hers', 'herself', 'it',
+                           "it's", 'its', 'itself', 'they', 'them', 'their', 'theirs',
+                           'themselves', 'what', 'which', 'who', 'whom', 'this', 'that',
+                           "that'll", 'these', 'those', 'am', 'is', 'are', 'was',
+                           'were', 'be', 'been', 'being', 'have', 'has', 'had',
+                           'having', 'do', 'does', 'did', 'doing', 'a', 'an',
+                           'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until',
+                           'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against',
+                           'between', 'into', 'through', 'during', 'before', 'after', 'above',
+                           'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over',
+                           'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when',
+                           'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more',
+                           'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
+                           'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just',
+                           'don', "don't", 'should', "should've", 'now', 'd', 'll', 'm', 'o',
+                           're', 've', 'y', 'ain', 'aren', "aren't",
+                           'couldn', "couldn't", 'didn', "didn't", 'doesn',
+                           "doesn't", 'hadn', "hadn't", 'hasn', "hasn't",
+                           'haven', "haven't", 'isn', "isn't", 'ma', 'mightn',
+                           "mightn't", 'mustn', "mustn't", 'needn', "needn't",
+                           'shan', "shan't", 'shouldn', "shouldn't", 'wasn', "wasn't",
+                           'weren', "weren't", 'won', "won't", 'wouldn', "wouldn't"]
 
+            if word in remove_list:
+                return False
+            else:
+                return True
 
-    def filterOut(word):
-        remove_list = ['i', 'me', 'my', 'myself', 'we', 'our', 'ours',
-                       'ourselves', 'you', "you're", "you've", "you'll", "you'd",
-                       'your', 'yours', 'yourself', 'yourselves', 'he', 'him', 'his',
-                       'himself', 'she', "she's", 'her', 'hers', 'herself', 'it',
-                       "it's", 'its', 'itself', 'they', 'them', 'their', 'theirs',
-                       'themselves', 'what', 'which', 'who', 'whom', 'this', 'that',
-                       "that'll", 'these', 'those', 'am', 'is', 'are', 'was',
-                       'were', 'be', 'been', 'being', 'have', 'has', 'had',
-                       'having', 'do', 'does', 'did', 'doing', 'a', 'an',
-                       'the', 'and', 'but', 'if', 'or', 'because', 'as', 'until',
-                       'while', 'of', 'at', 'by', 'for', 'with', 'about', 'against',
-                       'between', 'into', 'through', 'during', 'before', 'after', 'above',
-                       'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over',
-                       'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when',
-                       'where', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more',
-                       'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
-                       'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just',
-                       'don', "don't", 'should', "should've", 'now', 'd', 'll', 'm', 'o',
-                       're', 've', 'y', 'ain', 'aren', "aren't",
-                       'couldn', "couldn't", 'didn', "didn't", 'doesn',
-                       "doesn't", 'hadn', "hadn't", 'hasn', "hasn't",
-                       'haven', "haven't", 'isn', "isn't", 'ma', 'mightn',
-                       "mightn't", 'mustn', "mustn't", 'needn', "needn't",
-                       'shan', "shan't", 'shouldn', "shouldn't", 'wasn', "wasn't",
-                       'weren', "weren't", 'won', "won't", 'wouldn', "wouldn't"]
+        lowercasedString = string.lower()
+        # To split based on white space and random characters
+        stringArray = re.split('\W+', lowercasedString)
+        # Will substitute numbers for _NUM_
+        stringArray = [re.sub(r"[0-9]+", "_NUM_", s) for s in stringArray]
+        # Will filter out 1 letter words like "I" and "a"
+        stringArray = list(filter(lambda s: len(s) > 1, stringArray))
+        stringArray = list(filter(filterOut, stringArray))
+        # Will return a List/Array
+        return stringArray
 
-        if word in remove_list:
-            return False
-        else:
-            return True
+    # Gabe
+    def _createCorpus(self,dataframe):
+        corpus = []
 
-    lowercasedString = string.lower()
-    # To split based on white space and random characters
-    stringArray = re.split('\W+', lowercasedString)
-    # Will substitute numbers for _NUM_
-    stringArray = [re.sub(r"[0-9]+", "_NUM_", s) for s in stringArray]
-    # Will filter out 1 letter words like "I" and "a"
-    stringArray = list(filter(lambda s: len(s) > 1, stringArray))
-    fullyFiltered = list(filter(filterOut, stringArray))
-    # Will return a List/Array
-    return fullyFiltered
+        for i in dataframe.index:
+            tokens = dataframe['Tokens'][i]
 
+            # Only adds the new words by converting the lists into sets (no doubles)
+            # Then finding the new words by subtracting one set (a) from another set (b)
+            # then adds back in the new words that were in (b) and not in (a), back into a
+            token_set = set(tokens)
+            corpus_set = set(corpus)
+            new_tokens = token_set - corpus_set
+            corpus = corpus + list(new_tokens)
 
-# Gabe
-def _createCorpus(dataframe):
-    corpus = []
+        return corpus
 
-    for i in dataframe.index:
-        tokens = dataframe['Tokens'][i]
+    # Zach
+    def _createNewCorpus(self,dataframe, newTokens):
+        corpus = []
 
-        # Only adds the new words by converting the lists into sets (no doubles)
-        # Then finding the new words by subtracting one set (a) from another set (b)
-        # then adds back in the new words that were in (b) and not in (a), back into a
-        token_set = set(tokens)
+        for i in dataframe.index:
+            tokens = dataframe['Tokens'][i]
+
+            # Only adds the new words by converting the lists into sets (no doubles)
+            # Then finding the new words by subtracting one set (a) from another set (b)
+            # then adds back in the new words that were in (b) and not in (a), back into a
+            token_set = set(tokens)
+            corpus_set = set(corpus)
+            new_tokens = token_set - corpus_set
+            corpus = corpus + list(new_tokens)
+
+        # doing the same thing with the new tokens
         corpus_set = set(corpus)
+        token_set = set(newTokens)  # set of the newTokens from the parameter
         new_tokens = token_set - corpus_set
+
         corpus = corpus + list(new_tokens)
 
-    return corpus
+        return corpus
 
+    # Ephraim
+    # Will add column called 'BagOfWords' to dataframe
+    def _bagOfWordize(self,dataframe, corpus):
+        counts = []
+        for row in dataframe['Tokens']:
+            count = []  # Initialize count as an empty list
+            for word in corpus:
+                count.append(row.count(word))  # get the wordcount in each list of words, and record the count
+            counts.append(
+                count)  # Each list of wordCount vectors represents one document, and the counts variable is the list of all our docs' counts
+        dataframe['BagOfWords'] = counts
 
-# Zach
-def _createNewCorpus(dataframe, newTokens):
-    corpus = []
+    # Zach
+    def _TFIDFize(self,dataframe, corpus):
+        # adding column called 'TF-IDF'
+        dataframe.insert(len(dataframe.columns), 'TF-IDF', '')
 
-    for i in dataframe.index:
-        tokens = dataframe['Tokens'][i]
+        # for each set of tokens, creates a vector of tf-idf values and adds it to the new column
+        for i in dataframe.index:
+            tokens = dataframe['Tokens'][i]
+            vector = self._vectorize_tf_idf(dataframe, tokens, corpus)
+            dataframe['TF-IDF'][i] = vector
 
-        # Only adds the new words by converting the lists into sets (no doubles)
-        # Then finding the new words by subtracting one set (a) from another set (b)
-        # then adds back in the new words that were in (b) and not in (a), back into a
-        token_set = set(tokens)
-        corpus_set = set(corpus)
-        new_tokens = token_set - corpus_set
-        corpus = corpus + list(new_tokens)
-
-    # doing the same thing with the new tokens
-    corpus_set = set(corpus)
-    token_set = set(newTokens)  # set of the newTokens from the parameter
-    new_tokens = token_set - corpus_set
-
-    corpus = corpus + list(new_tokens)
-
-    return corpus
-
-
-# Ephraim
-# Will add column called 'BagOfWords' to dataframe
-def _bagOfWordize(dataframe, corpus):
-    counts = []
-    for row in dataframe['Tokens']:
-        count = []  # Initialize count as an empty list
+    def _vectorize_tf_idf(self, data, tokens, corpus):
+        v = []
         for word in corpus:
-            count.append(row.count(word))  # get the wordcount in each list of words, and record the count
-        counts.append(
-            count)  # Each list of wordCount vectors represents one document, and the counts variable is the list of all our docs' counts
-    dataframe['BagOfWords'] = counts
+            # tf: number of times word appears in tokens for this abstract over the amounf of (tokenized) words in the patent
+            tf = tokens.count(word) / len(tokens)
+            number_of_patents_with_word = self._appearences(data, word)
 
+            # idf: the log of the amount of documents divided by the number of patents with the word
+            idf = math.log(float(len(data)) / number_of_patents_with_word)
+            v.append(tf * idf)
+        return v
 
-# Zach
-def _TFIDFize(dataframe, corpus):
-    # adding column called 'TF-IDF'
-    dataframe.insert(len(dataframe.columns), 'TF-IDF', '')
+    def _appearences(self,data, word):
+        # gets the number of times a word appears in the tokens of all the data
+        number = 0
+        for tokens in data['Tokens']:
+            if word in tokens:
+                number += 1
 
-    # for each set of tokens, creates a vector of tf-idf values and adds it to the new column
-    for i in dataframe.index:
-        tokens = dataframe['Tokens'][i]
-        vector = _vectorize_tf_idf(dataframe, tokens, corpus)
-        dataframe['TF-IDF'][i] = vector
+        return number
 
+    # For the User
+    # Must Initialize first
 
-def _vectorize_tf_idf(data, tokens, corpus):
-    v = []
-    for word in corpus:
-        # tf: number of times word appears in tokens for this abstract over the amounf of (tokenized) words in the patent
-        tf = tokens.count(word) / len(tokens)
-        number_of_patents_with_word = _appearences(data, word)
+    # Zach
+    def jaccardTable(self, dataframe):
+        """ Takes a pandas dataframe with the metadata produced by init and returns a new table showing the jaccard index of each pair of patents"""
 
-        # idf: the log of the amount of documents divided by the number of patents with the word
-        idf = math.log(float(len(data)) / number_of_patents_with_word)
-        v.append(tf * idf)
-    return v
+        table = pd.DataFrame(dataframe[id_col])  # creating a new table for jaccard index data
+        for bow, n in zip(dataframe['BagOfWords'], dataframe[
+            id_col]):  # iterating through both data and name at same time to allow us to add the name to the row
+            comps = []  # series that represents this bag of word's jaccard index with each bow's, will become a pandas series/column at the end
+            for b in dataframe[
+                'BagOfWords']:  # iterating over every other doc's bow vector (this actually results double for each pair)
+                comps.append(self.jaccardSimilarity(bow,
+                                               b))  # applying jaccard similarity function (below) to the 2 BOWs, then adding it to the list
+            table[n] = comps  # adding this new column, n is the publication number from above
 
+        return table
 
-def _appearences(data, word):
-    # gets the number of times a word appears in the tokens of all the data
-    number = 0
-    for tokens in data['Tokens']:
-        if word in tokens:
-            number += 1
+    # accepts vector bag of words
+    def jaccardSimilarity(self, patent1, patent2):
+        """
+        Returns the Jaccard Similarity index of 2 patents
 
-    return number
+        :param patent1: Vector representing the text of 1 patent's text
+        :param patent2: Vector representing the text of a 2nd patent's text
+        :return: The jaccard similarity index of those 2 patents
+        """
+        count = 0
 
+        # counting the number of total words combined between both of them
+        for x in range(len(patent1)):
+            if patent1[x] != 0 or patent2[x] != 0:  # not equaling 0 means that it occurs at least once
+                count += 1
+        numerator = 0
 
-# For the User
-# Must Initialize first
+        # Counting the number of words in both
+        for x in range(len(patent1)):
+            if patent1[x] != 0 and patent2[x] != 0:
+                numerator += 1
 
-# Zach
-def jaccardTable(dataframe):
-    table = pd.DataFrame(dataframe['PublicationNumber'])  # creating a new table
-    for bow, n in zip(dataframe['BagOfWords'], dataframe['PublicationNumber']):  # iterating through both at same time
-        number = n  # getting the publication number so can use it as header later on
-        comps = []  # series that represents this bag of word's cosine comp with all bow's
-        for b in dataframe['BagOfWords']:  # getting the other bag of words
-            comps.append(jaccardSimilarity(bow, b))  # applying jaccard similarity to the 2 BOWs
-        table[n] = comps  # adding this new column, n is the publication number from above
+        return (numerator / count)
 
-    return table
+    # Zach
+    def cosineSimilarity(self,patent1, patent2):
+        """
+        Computes the cosine similarity of 2 patents. Used in CompareNewPatent below.
+        Creates a 2d array to match the input requirements of scikit's cosine func,
+         but only returns the 1 cell representing the 2 inputted patents
 
+        :param patent1: Vector representing the text of 1 patent's text
+        :param patent2: Vector representing the text of a 2nd patent's text
+        :return: The cosine similarity index of those 2 patents
+        """
+        v1 = np.array(patent1).reshape(1, -1)
+        v2 = np.array(patent2).reshape(1, -1)
+        return cosine_similarity(v1, v2)[0][0]
 
-# accepts vector bag of words
-def jaccardSimilarity(patent1, patent2):
-    count = 0
+    # Ephraim
+    def cosineTable(self,dataframe):
+        """
+         Takes a dataframe and returns a table with the cosine simialrity metrics of each pair
+        , uses scikit-learn's cosine function.
 
-    # counting the number of total words combined between both of them
-    for x in range(len(patent1)):
-        if patent1[x] != 0 or patent2[x] != 0:  # not equaling 0 means that it occurs at least once
-            count += 1
-    numerator = 0
+        :param dataframe: dataframe from init
+        :return: pandas table with cosine similarity (SciKit implementation) index from BOW vectors
+        """
 
-    # Counting the number of words in both
-    for x in range(len(patent1)):
-        if patent1[x] != 0 and patent2[x] != 0:
-            numerator += 1
+        newTable = pd.DataFrame(cosine_similarity(dataframe['BagOfWords'].tolist()))
+        newTable.columns = dataframe[id_col]
+        newTable.index = dataframe[id_col]
 
-    return (numerator / count)
+        return newTable
 
+    # Zach
+    # Comparing new patent based on TF-IDF/Cosine Similarity
+    # dataframe must have TF-IDF column
 
-# Zach
-def cosineSimilarity(patent1, patent2):
-    v1 = np.array(patent1).reshape(1, -1)
-    v2 = np.array(patent2).reshape(1, -1)
-    return cosine_similarity(v1, v2)[0][0]
+    def compareNewPatent(self,newComparisonText, dataframe):
+        """
+        Takes a new patent and the old dataframe, updates the dataframe with the new patent and any new words it adds, returns a tfidf comparison table
 
-# Ephraim
-def cosineTable(dataframe):
-    newTable = pd.DataFrame(cosine_similarity(dataframe['BagOfWords'].tolist()))
-    newTable.columns = dataframe['PublicationNumber']
-    newTable.index = dataframe['PublicationNumber']
+        :param newComparisonText: The new patent to be added to the comparison
+        :param dataframe: The old dataframe (with metadata created by init)
+        :return: A new pandas dataframe with similarity metrics using cosine similarity based on the tfidf vectors
+        """
 
-    return newTable
+        text = self._tokenizeText(newComparisonText)
+        new_tokens = self._tokenizeText(newComparisonText)
+        new_corpus = self._createCorpus(dataframe, new_tokens)  # has to create new corpus
+        new_vector = self._vectorize_tf_idf(dataframe, new_tokens,
+                                       new_corpus)  # gets a vector with the tf-idf values of new text
 
+        tuples = []
 
-# Zach
-# Comparing new patent based on TF-IDF/Cosine Similarity
-# dataframe must have TF-IDF column
-def compareNewPatent(newComparisonText, dataframe):
-    text = _tokenizeText(newComparisonText)
-    new_tokens = _tokenizeText(newComparisonText)
-    new_corpus = _createCorpus(dataframe, new_tokens)  # has to create new corpus
-    new_vector = _vectorize_tf_idf(dataframe, new_tokens,
-                                   new_corpus)  # gets a vector with the tf-idf values of new text
+        # # The following 3 lines are Ephraim's simplified implementation to replace the for loop that follows. The sorting and onwards is not replaced here.
+        # new_pat_vec = [new_vector for row in dataframe['BagOfWords']] # Create a 2d list where each line is the new_vector data, length matching our dataframe
+        # new_comparison = cosine_similarity(dataframe['BagOfWords'].tolist(), new_pat_vec)
+        # tuples = [[name,sim] for name,sim in zip(dataframe[id_col],new_comparison[0])]
 
-    tuples = []
+        for pn, vec in zip(dataframe[id_col],
+                           dataframe['TF-IDF']):  # iterates through both of these columns at same time
+            similarity = self.cosineSimilarity(new_vector, vec)  # compares new TF-IDF vector to the ones in dataframe
+            tuples.append([pn, similarity])  # adds to the tuples, contains the patent number and similarity
 
-    for pn, vec in zip(dataframe['PublicationNumber'],
-                       dataframe['TF-IDF']):  # iterates through both of these columns at same time
-        similarity = cosineSimilarity(new_vector, vec)  # compares new TF-IDF vector to the ones in dataframe
-        tuples.append([pn, similarity])  # adds to the tuples, contains the patent number and similarity
-    tuples = sorted(tuples, key=lambda similarity: similarity[1],
-                    reverse=True)  # sort the tuples based off of similarity
-    df = pd.DataFrame(tuples,
-                      columns=['Publication Number', 'Similarity'])  # turns the sorted tuple into a pandas dataframe
+        tuples = sorted(tuples, key=lambda similarity: similarity[1],
+                        reverse=True)  # sort the tuples based off of similarity
+        df = pd.DataFrame(tuples,
+                          columns=[id_col,
+                                   'Similarity'])  # turns the sorted tuple into a pandas dataframe
 
-    return df
+        return df
