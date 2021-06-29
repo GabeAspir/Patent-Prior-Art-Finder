@@ -6,12 +6,12 @@ import math
 from os import path
 
 class _DevPatentPriorArtFinder:
-    global id_col, txt_col
-
 
     def __init__(self):
         self.corpus = []
         self.number_of_patents_with_word = {}
+        self.id_col = ""
+        self.txt_col = ""
 
     # Gabe
     def init(self, csvPath, publicationNumberColumnString ='PublicationNumber', comparisonColumnString='Abstract'):
@@ -36,15 +36,14 @@ class _DevPatentPriorArtFinder:
         # Column Headers for dataframe:
         # PublicationNumber #Abstract
         # Dataframe will be created
-        global id_col, txt_col
-        id_col = publicationNumberColumnString
-        txt_col = comparisonColumnString
+        self.id_col = publicationNumberColumnString
+        self.txt_col = comparisonColumnString
         dataframe = pd.read_csv(csvPath)
 
         # Testing that the necessary columns exist
-        if txt_col not in dataframe.columns:
+        if self.txt_col not in dataframe.columns:
             raise IOError('the passed csv must have a column named Abstract or pass a column name as a parameter')
-        if id_col not in dataframe.columns:
+        if self.id_col not in dataframe.columns:
             raise IOError('the passed csv must have a column named PublicationNumber'
                           ' or pass a column name as a parameter')
 
@@ -59,7 +58,7 @@ class _DevPatentPriorArtFinder:
     # Private methods for init to call
     # Gabe
     def _tokenize(self,dataframe):
-        dataframe['Tokens'] = dataframe[txt_col].apply(self._tokenizeText)
+        dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
 
     # Will add column to dataframe called 'Tokens'
     # Gabe
@@ -215,9 +214,9 @@ class _DevPatentPriorArtFinder:
             elif all(isinstance(entry,(int,float))for entry in row) is False:
                 raise IOError('The contents of BagOfWords column were not all lists of numbers.')
 
-        table = pd.DataFrame(dataframe[id_col])  # creating a new table for jaccard index data
+        table = pd.DataFrame(dataframe[self.id_col])  # creating a new table for jaccard index data
         for bow, n in zip(dataframe['BagOfWords'], dataframe[
-            id_col]):  # iterating through both data and name at same time to allow us to add the name to the row
+            self.id_col]):  # iterating through both data and name at same time to allow us to add the name to the row
             comps = []  # series that represents this bag of word's jaccard index with each bow's, will become a pandas series/column at the end
             for b in dataframe[
                 'BagOfWords']:  # iterating over every other doc's bow vector (this actually results double for each pair)
@@ -289,8 +288,8 @@ class _DevPatentPriorArtFinder:
                 raise IOError('The contents of BagOfWords column were not all lists of numbers.')
 
         newTable = pd.DataFrame(cosine_similarity(dataframe['BagOfWords'].tolist()))
-        newTable.columns = dataframe[id_col]
-        newTable.index = dataframe[id_col]
+        newTable.columns = dataframe[self.id_col]
+        newTable.index = dataframe[self.id_col]
 
         return newTable
 
@@ -330,7 +329,7 @@ class _DevPatentPriorArtFinder:
         # new_comparison = cosine_similarity(dataframe['BagOfWords'].tolist(), new_pat_vec)
         # tuples = [[name,sim] for name,sim in zip(dataframe[id_col],new_comparison[0])]
 
-        for pn, vec in zip(dataframe[id_col],
+        for pn, vec in zip(dataframe[self.id_col],
                            dataframe['TF-IDF']):  # iterates through both of these columns at same time
             similarity = self.cosineSimilarity(new_vector, vec)  # compares new TF-IDF vector to the ones in dataframe
             tuples.append([pn, similarity])  # adds to the tuples, contains the patent number and similarity
@@ -338,7 +337,7 @@ class _DevPatentPriorArtFinder:
         tuples = sorted(tuples, key=lambda similarity: similarity[1],
                         reverse=True)  # sort the tuples based off of similarity
         df = pd.DataFrame(tuples,
-                          columns=[id_col,
+                          columns=[self.id_col,
                                    'Similarity'])  # turns the sorted tuple into a pandas dataframe
 
         return df
