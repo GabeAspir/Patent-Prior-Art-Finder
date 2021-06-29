@@ -173,8 +173,14 @@ class _DevPatentPriorArtFinder:
             tf = tokens.count(word) / len(tokens)
             number_of_patents_with_word = self._appearences(data, word)
 
-            # idf: the log of the amount of documents divided by the number of patents with the word
-            idf = math.log(float(len(data)) / number_of_patents_with_word)
+             # idf: the log of the amount of documents divided by the number of patents with the word
+
+            if tf !=0:
+                idf = math.log(float(len(data)) / number_of_patents_with_word)
+
+            else: 
+                idf = 0
+                   
             v.append(tf * idf)
         return v
 
