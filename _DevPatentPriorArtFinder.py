@@ -3,12 +3,12 @@ import pandas as pd
 import numpy as np
 import re
 import math
-
+from os import path
 
 class _DevPatentPriorArtFinder:
     global id_col, txt_col
     # Gabe
-    def init(self, csv, publicationNumberColumnString='PublicationNumber', comparisonColumnString='Abstract'):
+    def init(self, csvPath, publicationNumberColumnString ='PublicationNumber', comparisonColumnString='Abstract'):
         """
         Prepares csv patents data for similarity functions by creating a pandas dataframe that can be passed to the desired function.
 
@@ -22,15 +22,26 @@ class _DevPatentPriorArtFinder:
         :param comparisonColumnString: Optional, set by default to 'Abstract'. The name of the column that contains the patents' text, this is the data that is actually processed.
         :return: returns a pandas dataframe that adds relevant metadata to the patents. This metadata is later used for the similarity methods.
         """
+        if csvPath is None:
+            raise IOError('The passed file path was empty')
+        elif path.exists(csvPath) is False:
+            raise IOError('The passed file object does not exist')
+
         # Column Headers for dataframe:
         # PublicationNumber #Abstract
         # Dataframe will be created
         global id_col, txt_col
         id_col = publicationNumberColumnString
         txt_col = comparisonColumnString
-        dataframe = pd.read_csv(csv)
-        # dataframe.rename(columns={publicationNumberColumnString: 'PublicationNumber'}, inplace=True)
-        # dataframe.rename(columns={comparisonColumnString: 'Abstract'}, inplace=True)
+        dataframe = pd.read_csv(csvPath)
+
+        # Testing that the necessary columns exist
+        if txt_col not in dataframe.columns:
+            raise IOError('the passed csv must have a column named Abstract or pass a column name as a parameter')
+        if id_col not in dataframe.columns:
+            raise IOError('the passed csv must have a column named PublicationNumber'
+                          ' or pass a column name as a parameter')
+
 
         self._tokenize(dataframe)
         corpus = self._createCorpus(dataframe)
@@ -183,6 +194,19 @@ class _DevPatentPriorArtFinder:
     def jaccardTable(self, dataframe):
         """ Takes a pandas dataframe with the metadata produced by init and returns a new table showing the jaccard index of each pair of patents"""
 
+        if dataframe is None:
+            raise IOError("The dataframe was empty")
+        elif type(dataframe) is not pd.core.frame.DataFrame:
+            raise IOError("The passed object was not a dataframe")
+        elif 'BagOfWords' not in dataframe.columns:
+            raise IOError('The passed dataframe must have a column named BagOfWords.'
+                          ' Make sure this is the dataframe returned from init')
+        for row in dataframe['BagOfWords']:
+            if not all(isinstance(row,list)):
+                raise IOError('The contents of BagOfWords column were not all lists.')
+            elif all(isinstance(entry,(int,float))for entry in row) is False:
+                raise IOError('The contents of BagOfWords column were not all lists of numbers.')
+
         table = pd.DataFrame(dataframe[id_col])  # creating a new table for jaccard index data
         for bow, n in zip(dataframe['BagOfWords'], dataframe[
             id_col]):  # iterating through both data and name at same time to allow us to add the name to the row
@@ -190,7 +214,7 @@ class _DevPatentPriorArtFinder:
             for b in dataframe[
                 'BagOfWords']:  # iterating over every other doc's bow vector (this actually results double for each pair)
                 comps.append(self.jaccardSimilarity(bow,
-                                               b))  # applying jaccard similarity function (below) to the 2 BOWs, then adding it to the list
+                                                    b))  # applying jaccard similarity function (below) to the 2 BOWs, then adding it to the list
             table[n] = comps  # adding this new column, n is the publication number from above
 
         return table
@@ -243,6 +267,18 @@ class _DevPatentPriorArtFinder:
         :param dataframe: dataframe from init
         :return: pandas table with cosine similarity (SciKit implementation) index from BOW vectors
         """
+        if dataframe is None:
+            raise IOError("The dataframe was empty")
+        elif type(dataframe) is not pd.core.frame.DataFrame:
+            raise IOError("The passed object was not a dataframe")
+        elif 'BagOfWords' not in dataframe.columns:
+            raise IOError('The passed dataframe must have a column named BagOfWords.'
+                          ' Make sure this is the dataframe returned from init')
+        for row in dataframe['BagOfWords']:
+            if not all(isinstance(row,list)):
+                raise IOError('The contents of BagOfWords column were not all lists.')
+            elif all(isinstance(entry,(int,float))for entry in row) is False:
+                raise IOError('The contents of BagOfWords column were not all lists of numbers.')
 
         newTable = pd.DataFrame(cosine_similarity(dataframe['BagOfWords'].tolist()))
         newTable.columns = dataframe[id_col]
