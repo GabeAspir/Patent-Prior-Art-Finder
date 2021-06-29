@@ -7,6 +7,12 @@ from os import path
 
 class _DevPatentPriorArtFinder:
     global id_col, txt_col
+
+
+    def __init__(self):
+        self.corpus = []
+        self.number_of_patents_with_word = {}
+
     # Gabe
     def init(self, csvPath, publicationNumberColumnString ='PublicationNumber', comparisonColumnString='Abstract'):
         """
@@ -24,8 +30,8 @@ class _DevPatentPriorArtFinder:
         """
         if csvPath is None:
             raise IOError('The passed file path was empty')
-        elif path.exists(csvPath) is False:
-            raise IOError('The passed file object does not exist')
+        #elif path.exists(csvPath) is False:
+            #raise IOError('The passed file object does not exist')
 
         # Column Headers for dataframe:
         # PublicationNumber #Abstract
@@ -102,12 +108,27 @@ class _DevPatentPriorArtFinder:
         # Will return a List/Array
         return stringArray
 
+
+    # Zach
+    #Need to know how many documents contain each word later on for  TF-IDF
+    def _set_word_count(self, tokens):
+        tokens_set = set(tokens)
+        for word in tokens_set:
+            if word in self.number_of_patents_with_word:
+                self.number_of_patents_with_word[word]+=1
+            else:
+                self.number_of_patents_with_word[word]=1
+
+
+
     # Gabe
     def _createCorpus(self,dataframe):
         corpus = []
 
         for i in dataframe.index:
             tokens = dataframe['Tokens'][i]
+            self._set_word_count(tokens)
+
 
             # Only adds the new words by converting the lists into sets (no doubles)
             # Then finding the new words by subtracting one set (a) from another set (b)
@@ -117,31 +138,11 @@ class _DevPatentPriorArtFinder:
             new_tokens = token_set - corpus_set
             corpus = corpus + list(new_tokens)
 
+        self.corpus = corpus
         return corpus
 
-    # Zach
-    def _createNewCorpus(self,dataframe, newTokens):
-        corpus = []
 
-        for i in dataframe.index:
-            tokens = dataframe['Tokens'][i]
 
-            # Only adds the new words by converting the lists into sets (no doubles)
-            # Then finding the new words by subtracting one set (a) from another set (b)
-            # then adds back in the new words that were in (b) and not in (a), back into a
-            token_set = set(tokens)
-            corpus_set = set(corpus)
-            new_tokens = token_set - corpus_set
-            corpus = corpus + list(new_tokens)
-
-        # doing the same thing with the new tokens
-        corpus_set = set(corpus)
-        token_set = set(newTokens)  # set of the newTokens from the parameter
-        new_tokens = token_set - corpus_set
-
-        corpus = corpus + list(new_tokens)
-
-        return corpus
 
     # Ephraim
     # Will add column called 'BagOfWords' to dataframe
@@ -171,27 +172,28 @@ class _DevPatentPriorArtFinder:
         for word in corpus:
             # tf: number of times word appears in tokens for this abstract over the amounf of (tokenized) words in the patent
             tf = tokens.count(word) / len(tokens)
-            number_of_patents_with_word = self._appearences(data, word)
+            appearences = self.number_of_patents_with_word.get(word)
 
              # idf: the log of the amount of documents divided by the number of patents with the word
-
             if tf !=0:
-                idf = math.log(float(len(data)) / number_of_patents_with_word)
+                idf = math.log(float(len(data)) / appearences)
 
             else: 
                 idf = 0
-                   
+
             v.append(tf * idf)
         return v
 
-    def _appearences(self,data, word):
-        # gets the number of times a word appears in the tokens of all the data
-        number = 0
-        for tokens in data['Tokens']:
-            if word in tokens:
-                number += 1
 
-        return number
+
+    # def _appearences(self,data, word):
+    #     # gets the number of times a word appears in the tokens of all the data
+    #     number = 0
+    #     for tokens in data['Tokens']:
+    #         if word in tokens:
+    #             number += 1
+
+    #     return number
 
     # For the User
     # Must Initialize first
@@ -304,6 +306,18 @@ class _DevPatentPriorArtFinder:
         :param dataframe: The old dataframe (with metadata created by init)
         :return: A new pandas dataframe with similarity metrics using cosine similarity based on the tfidf vectors
         """
+
+        if newComparisonText is None:
+            raise IOError("The new String is Empty")
+        elif not isinstance(newComparisonText, str):
+            raise IOError("The New Compariosn Text is not a String")
+        elif type(dataframe) is not pd.core.frame.DataFrame:
+            raise IOError("The passed object was not a dataframe")
+        elif 'BagOfWords' not in dataframe.columns:
+            raise IOError('The passed dataframe must have a column named TF-IDF.'
+                          ' Make sure this is the dataframe returned from init')
+
+
         new_tokens = self._tokenizeText(newComparisonText)
         new_corpus = self._createCorpus(dataframe)  # has to create new corpus
         new_vector = self._vectorize_tf_idf(dataframe, new_tokens,
