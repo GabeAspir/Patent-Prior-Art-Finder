@@ -235,6 +235,14 @@ class _DevPatentPriorArtFinder:
         :param patent2: Vector representing the text of a 2nd patent's text
         :return: The jaccard similarity index of those 2 patents
         """
+
+        if patent1 is None or patent2 is None: 
+            raise IOError("One of or both of the Patents are empty")
+        elif type(patent1) is not list:
+            raise IOError("Patnet input must be a list")
+        elif len(patent1) != len(patent2):
+            raise IOError("Bag of Words must be the same length")
+
         count = 0
 
         # counting the number of total words combined between both of them
@@ -261,6 +269,15 @@ class _DevPatentPriorArtFinder:
         :param patent2: Vector representing the text of a 2nd patent's text
         :return: The cosine similarity index of those 2 patents
         """
+
+        if patent1 is None or patent2 is None: 
+            raise IOError("One of or both of the Patents are empty")
+        elif type(patent1) is not list:
+            raise IOError("Patnet input must be a list")
+        elif len(patent1) != len(patent2):
+            raise IOError("Bag of Words must be the same length")
+
+
         v1 = np.array(patent1).reshape(1, -1)
         v2 = np.array(patent2).reshape(1, -1)
         return cosine_similarity(v1, v2)[0][0]
@@ -315,6 +332,12 @@ class _DevPatentPriorArtFinder:
         elif 'BagOfWords' not in dataframe.columns:
             raise IOError('The passed dataframe must have a column named TF-IDF.'
                           ' Make sure this is the dataframe returned from init')
+
+        for row in dataframe['BagOfWords']:
+            if not all(isinstance(row,list)):
+                raise IOError('The contents of BagOfWords column were not all lists.')
+            elif all(isinstance(entry,(int,float))for entry in row) is False:
+                raise IOError('The contents of BagOfWords column were not all lists of numbers.')
 
 
         new_tokens = self._tokenizeText(newComparisonText)
