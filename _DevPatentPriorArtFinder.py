@@ -409,6 +409,7 @@ class _DevPatentPriorArtFinder:
         df = pd.read_csv(csvPath)
         combined_df = pd.concat([self.plain_dataframe, df], axis=0, ignore_index=True)
         new_complete_df = self.init(combined_df, publicationNumberColumnString, comparisonColumnString)
+        self.dataframe = new_complete_df
 
 
         return new_complete_df
