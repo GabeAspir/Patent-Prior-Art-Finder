@@ -174,6 +174,7 @@ class _DevPatentPriorArtFinder:
             appearences = self.number_of_patents_with_word.get(word)
 
              # idf: the log of the amount of documents divided by the number of patents with the word
+
             if tf !=0:
                 idf = math.log(float(len(data)) / appearences)
 
@@ -236,7 +237,7 @@ class _DevPatentPriorArtFinder:
         :return: The jaccard similarity index of those 2 patents
         """
 
-        if patent1 is None or patent2 is None: 
+        if patent1 is None or patent2 is None:
             raise IOError("One of or both of the Patents are empty")
         elif type(patent1) is not list:
             raise IOError("Patnet input must be a list")
@@ -270,7 +271,7 @@ class _DevPatentPriorArtFinder:
         :return: The cosine similarity index of those 2 patents
         """
 
-        if patent1 is None or patent2 is None: 
+        if patent1 is None or patent2 is None:
             raise IOError("One of or both of the Patents are empty")
         elif type(patent1) is not list:
             raise IOError("Patnet input must be a list")

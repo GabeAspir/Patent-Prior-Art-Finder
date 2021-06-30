@@ -2,7 +2,7 @@ from unittest import TestCase
 
 from scipy.constants import pt
 
-import _DevPatentPriorArtFinder as paf
+from _DevPatentPriorArtFinder import _DevPatentPriorArtFinder as dppaf
 import pandas as pd
 import re
 import math
@@ -11,49 +11,60 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 class Test(TestCase):
-
+    paf = dppaf()
     myCsv = open("../Patents/Day2-GoldSet.csv", "r")
-    # def test_init(self):
-    #     self.assertEqual(setup(),paf.init(aCsv))
+    csvP= "../Patents/Day2-GoldSet.csv"
+
+    def test_init(self):
+        paf = dppaf()
+        csvP = "../Patents/Day2-GoldSet.csv"
+        self.assertEqual(self.setup(),paf.init(csvP,'Publication_Number'))
     test_table = []
+
     def test__tokenize(self):
-        test_table = {'Abstracts': ["Doors are veRy similar to tables", "Doors are not very similar to cows",
+        paf = dppaf()
+        test_table = {'Abstract': ["Doors are veRy similar to tables", "Doors are not very similar to cows",
                                     "Wood will cost 1.50 in Wallmart", "Wood won't cost 500 in Wallmart",
                                     "Once upon a time the foobat was done writing examples"],
                       'Publication_number': ["tables", "cows", "onefifty", "fivehumdred", "foobat"]
                       }
-        test_tokenized= {'Tokens': [["doors","similar","tables"],
+        test_tokenized= [["Doors","similar","tables"],
                                     ["doors","similar","cows"],
                                     ["wood","cost","_NUM_","wallmart"],
                                     ["wood","cost","_NUM_","wallmart"],
-                                    ["upon","time","foobat","done","writing","examples"]]}
-        frame = pd.DataFrame(test_table, columns= ['Abstracts', 'Publication_number'])
-        self.assertEqual(paf.tokenize(frame),test_tokenized) # <<< Add input, need to change output
+                                    ["upon","time","foobat","done","writing","examples"]]
+        frame = pd.DataFrame(test_table, columns= ['Abstract', 'Publication_number'])
+        paf._tokenize(frame)
+        print(frame)
+        self.assertEqual(frame['Tokens'].tolist(),test_tokenized) # <<< Add input, need to change output
 
     def test__tokenize_text(self):
+        paf = dppaf()
         self.assertEqual(paf._tokenizeText("Doors are veRy similar to tables"),["doors","similar","tables"])
 
     def test__create_corpus(self):
-        test_table = {'Abstracts': ["Doors are veRy similar to tables", "Doors are not very similar to cows",
+        paf = dppaf()
+        test_table = {'Abstract': ["Doors are veRy similar to tables", "Doors are not very similar to cows",
                                     "Wood will cost 1.50 in Wallmart", "Wood won't cost 500 in Wallmart",
                                     "Once upon a time the foobat was done writing examples"],
                       'Publication_number': ["tables", "cows", "onefifty", "fivehumdred", "foobat"]
                       }
-        frame = pd.DataFrame(test_table, columns=['Abstracts', 'Publication_number'])
-        test_tokenized = {'Tokens': [["doors", "similar", "tables"],
+        frame = pd.DataFrame(test_table, columns=['Abstract', 'Publication_number'])
+        test_tokenized = [["doors", "similar", "tables"],
                                      ["doors", "similar", "cows"],
                                      ["wood", "cost", "_NUM_", "wallmart"],
                                      ["wood", "cost", "_NUM_", "wallmart"],
-                                     ["upon", "time", "foobat", "done", "writing", "examples"]]}
+                                     ["upon", "time", "foobat", "done", "writing", "examples"]]
         frame["Tokens"]= test_tokenized
 
-        corpus = ["doors","simialr","tables","cows","wood","cost","_NUM_","wallmart","upon","time","foobat","writing","examples"]
-        self.assertEqual(paf._createCorpus(frame),corpus)
+        corpus = ["doors","similar","tables","cows","done","wood","cost","_NUM_","wallmart","upon","time","foobat","writing","examples"]
+        self.assertEqual(set(paf._createCorpus(frame)),set(corpus))
 
     # def test__create_new_corpus(self):
     #     self.fail()
     #
     def test__bag_of_wordize(self):
+        paf = dppaf()
         bag= [[1,1,1,0,0,0,0,0,0,0,0,0,0],
               [1,1,0,1,0,0,0,0,0,0,0,0,0],
               [0,       0         ,0     ,0     ,1     ,1      ,1     ,1         ,0     ,0     ,0       ,0          ,0],
