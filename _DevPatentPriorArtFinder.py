@@ -10,8 +10,8 @@ class _DevPatentPriorArtFinder:
     def __init__(self):
         self.corpus = []
         self.number_of_patents_with_word = {}
-        self.id_col = ""
-        self.txt_col = ""
+        self.id_col = "PublicationNumber"
+        self.txt_col = "Abstract"
         self.plain_dataframe = None
         self.dataframe = None
 
@@ -108,10 +108,10 @@ class _DevPatentPriorArtFinder:
                 return True
 
         lowercasedString = string.lower()
-        # To split based on white space and random characters
-        stringArray = re.split('\W+', lowercasedString)
         # Will substitute numbers for _NUM_
-        stringArray = [re.sub(r"/^\d*\.?\d*$/", "_NUM_", s) for s in stringArray]
+        stringArray = re.sub(r"\d+\.?\d*", "_NUM_", lowercasedString)
+        # To split based on white space and random characters
+        stringArray = re.split('\W+', stringArray)
         # Will filter out 1 letter words like "I" and "a"
         stringArray = list(filter(lambda s: len(s) > 1, stringArray))
         stringArray = list(filter(filterOut, stringArray))
@@ -226,15 +226,18 @@ class _DevPatentPriorArtFinder:
             elif all(isinstance(entry,(int,float))for entry in row) is False:
                 raise IOError('The contents of BagOfWords column were not all lists of numbers.')
 
-        table = pd.DataFrame(dataframe[self.id_col])  # creating a new table for jaccard index data
-        for bow, n in zip(dataframe['BagOfWords'], dataframe[
-            self.id_col]):  # iterating through both data and name at same time to allow us to add the name to the row
+        pretable =[]  # creating a new table for jaccard index data
+        for bow in dataframe['BagOfWords']:  # iterating through both data and name at same time to allow us to add the name to the row
             comps = []  # series that represents this bag of word's jaccard index with each bow's, will become a pandas series/column at the end
             for b in dataframe[
                 'BagOfWords']:  # iterating over every other doc's bow vector (this actually results double for each pair)
                 comps.append(self.jaccardSimilarity(bow,
                                                     b))  # applying jaccard similarity function (below) to the 2 BOWs, then adding it to the list
-            table[n] = comps  # adding this new column, n is the publication number from above
+            pretable.append(comps)  # adding this new column, n is the publication number from above
+        table = pd.DataFrame(pretable)
+        table.columns = dataframe[self.id_col].tolist()
+        table.index = dataframe[self.id_col].tolist()
+
 
         return table
 
@@ -251,21 +254,21 @@ class _DevPatentPriorArtFinder:
         if patent1 is None or patent2 is None:
             raise IOError("One of or both of the Patents are empty")
         elif type(patent1) is not list:
-            raise IOError("Patnet input must be a list")
+            raise IOError("Patent input must be a list")
         elif len(patent1) != len(patent2):
             raise IOError("Bag of Words must be the same length")
 
         count = 0
 
         # counting the number of total words combined between both of them
-        for x in range(len(patent1)):
-            if patent1[x] != 0 or patent2[x] != 0:  # not equaling 0 means that it occurs at least once
+        for x,y in zip(patent1,patent2):
+            if x != 0 or y != 0:  # not equaling 0 means that it occurs at least once
                 count += 1
         numerator = 0
 
         # Counting the number of words in both
-        for x in range(len(patent1)):
-            if patent1[x] != 0 and patent2[x] != 0:
+        for x, y in zip(patent1, patent2):
+            if x != 0 and y != 0:
                 numerator += 1
 
         return (numerator / count)
@@ -285,7 +288,7 @@ class _DevPatentPriorArtFinder:
         if patent1 is None or patent2 is None:
             raise IOError("One of or both of the Patents are empty")
         elif type(patent1) is not list:
-            raise IOError("Patnet input must be a list")
+            raise IOError("Patent input must be a list")
         elif len(patent1) != len(patent2):
             raise IOError("Bag of Words must be the same length")
 
@@ -317,8 +320,8 @@ class _DevPatentPriorArtFinder:
                 raise IOError('The contents of BagOfWords column were not all lists of numbers.')
 
         newTable = pd.DataFrame(cosine_similarity(dataframe['BagOfWords'].tolist()))
-        newTable.columns = dataframe[self.id_col]
-        newTable.index = dataframe[self.id_col]
+        newTable.columns = dataframe[self.id_col].tolist()
+        newTable.index = dataframe[self.id_col].tolist()
 
         return newTable
 
