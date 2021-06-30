@@ -100,7 +100,7 @@ class _DevPatentPriorArtFinder:
         # To split based on white space and random characters
         stringArray = re.split('\W+', lowercasedString)
         # Will substitute numbers for _NUM_
-        stringArray = [re.sub(r"[0-9]+", "_NUM_", s) for s in stringArray]
+        stringArray = [re.sub(r"/^\d*\.?\d*$/", "_NUM_", s) for s in stringArray]
         # Will filter out 1 letter words like "I" and "a"
         stringArray = list(filter(lambda s: len(s) > 1, stringArray))
         stringArray = list(filter(filterOut, stringArray))
@@ -174,6 +174,7 @@ class _DevPatentPriorArtFinder:
             appearences = self.number_of_patents_with_word.get(word)
 
              # idf: the log of the amount of documents divided by the number of patents with the word
+
             if tf !=0:
                 idf = math.log(float(len(data)) / appearences)
 
@@ -209,7 +210,7 @@ class _DevPatentPriorArtFinder:
             raise IOError('The passed dataframe must have a column named BagOfWords.'
                           ' Make sure this is the dataframe returned from init')
         for row in dataframe['BagOfWords']:
-            if not all(isinstance(row,list)):
+            if isinstance(row, list) is False:
                 raise IOError('The contents of BagOfWords column were not all lists.')
             elif all(isinstance(entry,(int,float))for entry in row) is False:
                 raise IOError('The contents of BagOfWords column were not all lists of numbers.')
@@ -236,7 +237,7 @@ class _DevPatentPriorArtFinder:
         :return: The jaccard similarity index of those 2 patents
         """
 
-        if patent1 is None or patent2 is None: 
+        if patent1 is None or patent2 is None:
             raise IOError("One of or both of the Patents are empty")
         elif type(patent1) is not list:
             raise IOError("Patnet input must be a list")
@@ -270,7 +271,7 @@ class _DevPatentPriorArtFinder:
         :return: The cosine similarity index of those 2 patents
         """
 
-        if patent1 is None or patent2 is None: 
+        if patent1 is None or patent2 is None:
             raise IOError("One of or both of the Patents are empty")
         elif type(patent1) is not list:
             raise IOError("Patnet input must be a list")
@@ -299,7 +300,7 @@ class _DevPatentPriorArtFinder:
             raise IOError('The passed dataframe must have a column named BagOfWords.'
                           ' Make sure this is the dataframe returned from init')
         for row in dataframe['BagOfWords']:
-            if not all(isinstance(row,list)):
+            if isinstance(row,list) is False:
                 raise IOError('The contents of BagOfWords column were not all lists.')
             elif all(isinstance(entry,(int,float))for entry in row) is False:
                 raise IOError('The contents of BagOfWords column were not all lists of numbers.')
