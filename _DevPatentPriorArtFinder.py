@@ -83,7 +83,7 @@ class _DevPatentPriorArtFinder:
                            'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
                            'same', 'so', 'than', 'too', 'very', 's', 't', 'can', 'will', 'just',
                            'don', "don't", 'should', "should've", 'now', 'd', 'll', 'm', 'o',
-                           're', 've', 'y', 'ain', 'aren', "aren't",
+                           're', 've', 'y', 'ain', '_NUM_', 'aren', "aren't",
                            'couldn', "couldn't", 'didn', "didn't", 'doesn',
                            "doesn't", 'hadn', "hadn't", 'hasn', "hasn't",
                            'haven', "haven't", 'isn', "isn't", 'ma', 'mightn',
