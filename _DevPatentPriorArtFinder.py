@@ -322,7 +322,6 @@ class _DevPatentPriorArtFinder:
         :param dataframe: The old dataframe (with metadata created by init)
         :return: A new pandas dataframe with similarity metrics using cosine similarity based on the tfidf vectors
         """
-
         if newComparisonText is None:
             raise IOError("The new String is Empty")
         elif not isinstance(newComparisonText, str):
@@ -333,11 +332,6 @@ class _DevPatentPriorArtFinder:
             raise IOError('The passed dataframe must have a column named TF-IDF.'
                           ' Make sure this is the dataframe returned from init')
 
-        for row in dataframe['BagOfWords']:
-            if not all(isinstance(row,list)):
-                raise IOError('The contents of BagOfWords column were not all lists.')
-            elif all(isinstance(entry,(int,float))for entry in row) is False:
-                raise IOError('The contents of BagOfWords column were not all lists of numbers.')
 
 
         new_tokens = self._tokenizeText(newComparisonText)
