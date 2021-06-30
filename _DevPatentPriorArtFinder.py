@@ -12,6 +12,8 @@ class _DevPatentPriorArtFinder:
         self.number_of_patents_with_word = {}
         self.id_col = ""
         self.txt_col = ""
+        self.plain_dataframe = None
+        self.dataframe = None
 
     # Gabe
     def init(self, csvPath, publicationNumberColumnString ='PublicationNumber', comparisonColumnString='Abstract'):
@@ -28,6 +30,8 @@ class _DevPatentPriorArtFinder:
         :param comparisonColumnString: Optional, set by default to 'Abstract'. The name of the column that contains the patents' text, this is the data that is actually processed.
         :return: returns a pandas dataframe that adds relevant metadata to the patents. This metadata is later used for the similarity methods.
         """
+
+
         if csvPath is None:
             raise IOError('The passed file path was empty')
         #elif path.exists(csvPath) is False:
@@ -38,7 +42,14 @@ class _DevPatentPriorArtFinder:
         # Dataframe will be created
         self.id_col = publicationNumberColumnString
         self.txt_col = comparisonColumnString
-        dataframe = pd.read_csv(csvPath)
+
+
+        if not isinstance(csvPath, pd.DataFrame):
+            self.plain_dataframe = pd.read_csv(csvPath)
+            dataframe = pd.read_csv(csvPath)
+        else: 
+            dataframe = csvPath
+
 
         # Testing that the necessary columns exist
         if self.txt_col not in dataframe.columns:
@@ -52,7 +63,7 @@ class _DevPatentPriorArtFinder:
         corpus = self._createCorpus(dataframe)
         self._bagOfWordize(dataframe, corpus)
         self._TFIDFize(dataframe, corpus)
-
+        self.dataframe=dataframe
         return dataframe
 
     # Private methods for init to call
@@ -389,6 +400,22 @@ class _DevPatentPriorArtFinder:
                                    'Similarity'])  # turns the sorted tuple into a pandas dataframe
 
         return df
+
+
+
+    #adds new patents to the dataframe that we want to use. Will help us add patents that we know are similiar
+    #must have same key column names (for the publication number, and abstract) as the dataframe that adding to 
+    def _add_patents_to_data(self, csvPath, publicationNumberColumnString ='PublicationNumber', comparisonColumnString='Abstract'): 
+        df = pd.read_csv(csvPath)
+        combined_df = pd.concat([self.plain_dataframe, df], axis=0, ignore_index=True)
+        new_complete_df = self.init(combined_df, publicationNumberColumnString, comparisonColumnString)
+
+
+        return new_complete_df
+
+
+
+
 
 
 
