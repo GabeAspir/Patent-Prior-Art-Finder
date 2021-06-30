@@ -311,6 +311,36 @@ class _DevPatentPriorArtFinder:
 
         return newTable
 
+
+
+    def cosineTableTF(self,dataframe):
+        """
+         Takes a dataframe and returns a table with the cosine simialrity metrics of each pair
+        , uses scikit-learn's cosine function.
+
+        :param dataframe: dataframe from init
+        :return: pandas table with cosine similarity (SciKit implementation) index from TF-IDF vectors
+        """
+        if dataframe is None:
+            raise IOError("The dataframe was empty")
+        elif type(dataframe) is not pd.core.frame.DataFrame:
+            raise IOError("The passed object was not a dataframe")
+        elif 'TF-IDF' not in dataframe.columns:
+            raise IOError('The passed dataframe must have a column named TF-IDF.'
+                          ' Make sure this is the dataframe returned from init')
+        for row in dataframe['TF-IDF']:
+            if isinstance(row,list) is False:
+                raise IOError('The contents of TF-IDF column were not all lists.')
+            elif all(isinstance(entry,(int,float))for entry in row) is False:
+                raise IOError('The contents of TF-IDF column were not all lists of numbers.')
+
+        newTable = pd.DataFrame(cosine_similarity(dataframe['TF-IDF'].tolist()))
+        newTable.columns = dataframe[self.id_col]
+        newTable.index = dataframe[self.id_col]
+
+        return newTable
+
+
     # Zach
     # Comparing new patent based on TF-IDF/Cosine Similarity
     # dataframe must have TF-IDF column
@@ -359,3 +389,6 @@ class _DevPatentPriorArtFinder:
                                    'Similarity'])  # turns the sorted tuple into a pandas dataframe
 
         return df
+
+
+
