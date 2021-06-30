@@ -100,7 +100,7 @@ class _DevPatentPriorArtFinder:
         # To split based on white space and random characters
         stringArray = re.split('\W+', lowercasedString)
         # Will substitute numbers for _NUM_
-        stringArray = [re.sub(r"[0-9]+", "_NUM_", s) for s in stringArray]
+        stringArray = [re.sub(r"/^\d*\.?\d*$/", "_NUM_", s) for s in stringArray]
         # Will filter out 1 letter words like "I" and "a"
         stringArray = list(filter(lambda s: len(s) > 1, stringArray))
         stringArray = list(filter(filterOut, stringArray))
@@ -210,7 +210,7 @@ class _DevPatentPriorArtFinder:
             raise IOError('The passed dataframe must have a column named BagOfWords.'
                           ' Make sure this is the dataframe returned from init')
         for row in dataframe['BagOfWords']:
-            if not all(isinstance(row,list)):
+            if isinstance(row, list) is False:
                 raise IOError('The contents of BagOfWords column were not all lists.')
             elif all(isinstance(entry,(int,float))for entry in row) is False:
                 raise IOError('The contents of BagOfWords column were not all lists of numbers.')
@@ -300,7 +300,7 @@ class _DevPatentPriorArtFinder:
             raise IOError('The passed dataframe must have a column named BagOfWords.'
                           ' Make sure this is the dataframe returned from init')
         for row in dataframe['BagOfWords']:
-            if not all(isinstance(row,list)):
+            if isinstance(row,list) is False:
                 raise IOError('The contents of BagOfWords column were not all lists.')
             elif all(isinstance(entry,(int,float))for entry in row) is False:
                 raise IOError('The contents of BagOfWords column were not all lists of numbers.')
