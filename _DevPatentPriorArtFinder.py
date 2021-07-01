@@ -1,4 +1,5 @@
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import pairwise_distances
 import pandas as pd
 import numpy as np
 import re
@@ -226,15 +227,16 @@ class _DevPatentPriorArtFinder:
             elif all(isinstance(entry,(int,float))for entry in row) is False:
                 raise IOError('The contents of BagOfWords column were not all lists of numbers.')
 
-        pretable =[]  # creating a new table for jaccard index data
-        for bow in dataframe['BagOfWords']:  # iterating through both data and name at same time to allow us to add the name to the row
-            comps = []  # series that represents this bag of word's jaccard index with each bow's, will become a pandas series/column at the end
-            for b in dataframe[
-                'BagOfWords']:  # iterating over every other doc's bow vector (this actually results double for each pair)
-                comps.append(self.jaccardSimilarity(bow,
-                                                    b))  # applying jaccard similarity function (below) to the 2 BOWs, then adding it to the list
-            pretable.append(comps)  # adding this new column, n is the publication number from above
-        table = pd.DataFrame(pretable)
+        # pretable =[]  # creating a new table for jaccard index data
+        # for bow in dataframe['BagOfWords']:  # iterating through both data and name at same time to allow us to add the name to the row
+        #     comps = []  # series that represents this bag of word's jaccard index with each bow's, will become a pandas series/column at the end
+        #     for b in dataframe[
+        #         'BagOfWords']:  # iterating over every other doc's bow vector (this actually results double for each pair)
+        #         comps.append(self.jaccardSimilarity(bow,
+        #                                             b))  # applying jaccard similarity function (below) to the 2 BOWs, then adding it to the list
+        #     pretable.append(comps)  # adding this new column, n is the publication number from above
+        # table = pd.DataFrame(pretable)
+        table = pd.DataFrame(1 - pairwise_distances(np.asarray(dataframe['BagOfWords'].tolist()), metric='jaccard'))
         table.columns = dataframe[self.id_col].tolist()
         table.index = dataframe[self.id_col].tolist()
 
@@ -417,21 +419,44 @@ class _DevPatentPriorArtFinder:
 
         return new_complete_df
 
-    def matches(self,dataframe):
+    def oldmatches(self,compFrame,docFrame):
         print("Matches: ")
         print("____________________")
         r = 0
-        for index, row in dataframe.iterrows():
+        for index, row in compFrame.iterrows():
             n = 0
             for entry in row:
-                if type(entry) is not str and entry < .99 and entry >= .6:
+                if n > r + 1:
+                    break
+                if type(entry) is not str and entry<.99 and entry >= .06:
                     print(entry)
                     print(index)
-                    print(dataframe[self.id_col][n])
+                    print(docFrame[self.id_col][n])
                     print("col: " + str(n))
                     print("row: " + str(r))
-                    print(dataframe[self.txt_col][n])
-                    print(dataframe[self.txt_col][r])
+                    print(docFrame[self.txt_col][n])
+                    print(docFrame[self.txt_col][r])
+                    print()
+                n += 1
+            r += 1
+        print("____________________")
+
+    def matches(self,compFrame,docFrame):
+        print("Matches: ")
+        print("____________________")
+        r = 0
+        for index, row in compFrame.iterrows():
+            n = 0
+            for entry in row:
+                if type(entry) is not str and entry<.99 and entry >= .06:
+                    print(entry)
+                    print(compFrame.columns[n])
+                    print(index)
+                    print(docFrame[self.id_col][n])
+                    print("col: " + str(n))
+                    print("row: " + str(r))
+                    print(docFrame[self.txt_col][n])
+                    print(docFrame[self.txt_col][r])
                     print()
                 n += 1
             r += 1
