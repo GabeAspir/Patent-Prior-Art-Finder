@@ -426,9 +426,7 @@ class _DevPatentPriorArtFinder:
         for index, row in compFrame.iterrows():
             n = 0
             for entry in row:
-                if n > r + 1:
-                    break
-                if type(entry) is not str and entry<.99 and entry >= .06:
+                if type(entry) is not str and entry<.99 and entry >= .6:
                     print(entry)
                     print(index)
                     print(docFrame[self.id_col][n])
