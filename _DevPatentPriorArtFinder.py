@@ -424,10 +424,10 @@ class _DevPatentPriorArtFinder:
         for index, row in dataframe.iterrows():
             n = 0
             for entry in row:
-                if type(entry) is not str and entry >= .6:
+                if type(entry) is not str and entry < .99 and entry >= .6:
                     print(entry)
                     print(index)
-                    print(dataframe[self.id_colid_col][n])
+                    print(dataframe[self.id_col][n])
                     print("col: " + str(n))
                     print("row: " + str(r))
                     print(dataframe[self.txt_col][n])
