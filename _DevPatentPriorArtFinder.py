@@ -441,23 +441,19 @@ class _DevPatentPriorArtFinder:
             r += 1
         print("____________________")
 
-    def matches(self,compFrame,docFrame):
+    def matches(self,compFrame,docFrame,threshold=.6):
         print("Matches: ")
         print("____________________")
-        r = 0
-        for index, row in compFrame.iterrows():
-            n = 0
-            for entry in row:
-                if type(entry) is not str and entry<.99 and entry >= .06:
-                    print(entry)
+        for r in range(0,len(compFrame)):
+            for n in range(0,r+1):
+                entry= compFrame.iloc[n][r]
+                if type(entry) is not str and entry<.99 and entry >= threshold:
+                    print("val: "+str(compFrame.iloc[n][r]))
+                    print(compFrame.columns[r])
                     print(compFrame.columns[n])
-                    print(index)
-                    print(docFrame[self.id_col][n])
                     print("col: " + str(n))
                     print("row: " + str(r))
                     print(docFrame[self.txt_col][n])
                     print(docFrame[self.txt_col][r])
                     print()
-                n += 1
-            r += 1
         print("____________________")
