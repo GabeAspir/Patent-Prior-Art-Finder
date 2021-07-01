@@ -419,7 +419,7 @@ class _DevPatentPriorArtFinder:
 
     def matches(self,dataframe):
         r = 0
-        for index, row in dataframe.head((len(dataframe)/2)+1).iterrows():
+        for index, row in dataframe.iterrows():
             n = 0
             for entry in row:
                 if type(entry) is not str and entry < .99 and entry >= .6:
