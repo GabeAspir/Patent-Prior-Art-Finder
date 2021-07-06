@@ -1,3 +1,4 @@
+from sklearn.metrics import jaccard_score
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import numpy as np
@@ -226,17 +227,24 @@ class _DevPatentPriorArtFinder:
             elif all(isinstance(entry,(int,float))for entry in row) is False:
                 raise IOError('The contents of BagOfWords column were not all lists of numbers.')
 
-        pretable =[]  # creating a new table for jaccard index data
-        for bow in dataframe['BagOfWords']:  # iterating through both data and name at same time to allow us to add the name to the row
-            comps = []  # series that represents this bag of word's jaccard index with each bow's, will become a pandas series/column at the end
-            for b in dataframe[
-                'BagOfWords']:  # iterating over every other doc's bow vector (this actually results double for each pair)
-                comps.append(self.jaccardSimilarity(bow,
-                                                    b))  # applying jaccard similarity function (below) to the 2 BOWs, then adding it to the list
-            pretable.append(comps)  # adding this new column, n is the publication number from above
-        table = pd.DataFrame(pretable)
-        table.columns = dataframe[self.id_col].tolist()
-        table.index = dataframe[self.id_col].tolist()
+        # pretable =[]  # creating a new table for jaccard index data
+        # for bow in dataframe['BagOfWords']:  # iterating through both data and name at same time to allow us to add the name to the row
+        #     comps = []  # series that represents this bag of word's jaccard index with each bow's, will become a pandas series/column at the end
+        #     for b in dataframe[
+        #         'BagOfWords']:  # iterating over every other doc's bow vector (this actually results double for each pair)
+        #         comps.append(self.jaccardSimilarity(bow,
+        #                                             b))  # applying jaccard similarity function (below) to the 2 BOWs, then adding it to the list
+        #     pretable.append(comps)  # adding this new columnn is the publication number from above
+        # table = pd.DataFrame(pretable)
+        # table.columns = dataframe[self.id_col].tolist()
+        # table.index = dataframe[self.id_col].tolist()
+
+
+        newTable = pd.DataFrame(jaccard_score(dataframe['BagOfWords'].tolist()))
+        newTable.columns = dataframe[self.id_col]
+        newTable.index = dataframe[self.id_col]
+
+
 
 
         return table
