@@ -115,7 +115,6 @@ class _DevNLTKPatentPriorArtFinder:
 
 
     # Zach
-
     def _tf_idf_scikit(self):
         #https://mmuratarat.github.io/2020-04-03/bow_model_tf_idf
         tfidf_vectorizer = TfidfVectorizer(use_idf=True)
