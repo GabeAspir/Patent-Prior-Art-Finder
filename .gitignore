@@ -5,7 +5,7 @@
 *.idea
 
 ZachFishFolder/
-
+__pycache__/
 # Log file
 *.log
 *.DS_Store
