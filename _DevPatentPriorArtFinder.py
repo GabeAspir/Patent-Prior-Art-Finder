@@ -440,12 +440,14 @@ class _DevPatentPriorArtFinder:
         print("____________________")
 
     def matches(self,compFrame,docFrame,threshold=.6):
+        matches = []
         print("Matches: ")
         print("____________________")
         for r in range(0,len(compFrame)):
             for n in range(0,r+1):
                 entry= compFrame.iloc[n][r]
                 if type(entry) is not str and entry<.99 and entry >= threshold:
+                    matches.append([entry,n,r])
                     print("val: "+str(compFrame.iloc[n][r]))
                     print(compFrame.columns[r])
                     print(compFrame.columns[n])
@@ -454,4 +456,11 @@ class _DevPatentPriorArtFinder:
                     print(docFrame[self.txt_col][n])
                     print(docFrame[self.txt_col][r])
                     print()
+        if matches:
+            matchTable= pd.DataFrame(matches)
+            matchTable.columns= ['score','pat1','pat2']
+            matchTable= matchTable.sort_values(by=['score'])
+            print(matchTable)
+        else:
+            print("No matches found")
         print("____________________")

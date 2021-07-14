@@ -107,7 +107,6 @@ class _DevNLTKPatentPriorArtFinder:
         self.corpus = list(self.word_count_matrix.columns.values)
         return self.corpus
 
-    # Ephraim
     # Will add column called 'BagOfWords' to dataframe
     def _bagOfWordize(self, dataframe, corpus):
         bows = self.word_count_matrix.values.tolist() #makes a list of all the rows (so will be a list of lists)
