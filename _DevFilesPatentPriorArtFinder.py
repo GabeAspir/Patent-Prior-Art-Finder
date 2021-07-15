@@ -34,12 +34,27 @@ class _DevFilesPatentPriorArtFinder:
         # Iterates over the files in the directory twice.
         # Once to save the tokenization column to the file, and adds the file to the model's training
         # 2nd time to append the w2v encodings generated from the fully trained model to the files.
+        first=True
         for entry in os.scandir(dirPath):
-            self._addtoModel(entry)
+            if(first):
+                self._makeModel(entry)
+            else:
+                self._addtoModel(entry)
         for entry in os.scandir(dirPath):
             self._getEmbeding(entry)
 
     # Private methods for init to call
+    def _makeModel(self,file):
+        dataframe= pd.io.json.read_json(file, lines=True)
+        dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
+        dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
+        dataframe.to_json(file)
+
+        model_words = Word2Vec(dataframe['Tokens'])
+        self.model_words = model_words
+        model_citations = Word2Vec(dataframe['TokenizedCitations'], min_count=1)
+        self.model_citations = model_citations
+
     def _addtoModel(self,file):
         dataframe= pd.io.json.read_json(file, lines=True)
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
