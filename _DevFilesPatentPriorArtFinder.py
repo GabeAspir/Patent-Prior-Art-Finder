@@ -13,9 +13,9 @@ from gensim.models import Word2Vec
 nltk.download('punkt')
 nltk.download('stopwords')
 
-class _DevNLTKPatentPriorArtFinder:
+class _DevFilesPatentPriorArtFinder:
 
-    def __init__(self, dirPath, publicationNumberColumnString='PublicationNumber', comparisonColumnString='Abstract', cit_col= "Citations"):
+    def __init__(self, dirPath, publicationNumberColumnString='Publication_Number', comparisonColumnString='Abstract', cit_col= "Citations"):
         self.corpus = []
         self.number_of_patents_with_word = {}
         self.plain_dataframe = None
@@ -41,7 +41,7 @@ class _DevNLTKPatentPriorArtFinder:
 
     # Private methods for init to call
     def _addtoModel(self,file):
-        dataframe= pd.io.json.read_json(file)
+        dataframe= pd.io.json.read_json(file, lines=True)
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
         dataframe.to_json(file)
@@ -75,7 +75,7 @@ class _DevNLTKPatentPriorArtFinder:
         return [word for word in tokenized if not word.lower() in stop_words]
 
     def _getEmbeding(self,file):
-        data= pd.io.json.read_json(file)
+        data= pd.io.json.read_json(file, lines=True)
         text_tokens = data['Tokens']
         citation_tokens = data['TokenizedCitations']
         vecs =[]
@@ -124,45 +124,45 @@ class _DevNLTKPatentPriorArtFinder:
 
     # Comparing new patent based on TF-IDF/Cosine Similarity
     # dataframe must have TF-IDF column
-
-    def compareNewPatent(self, newComparisonText, dataframe):
-        """
-        Takes a new patent and the old dataframe, updates the dataframe with the new patent and any new words it adds, returns a tfidf comparison table
-
-        :param newComparisonText: The new patent to be added to the comparison
-        :param dataframe: The old dataframe (with metadata created by init)
-        :return: A new pandas dataframe with similarity metrics using cosine similarity based on the tfidf vectors
-        """
-        if newComparisonText is None:
-            raise IOError("The new String is Empty")
-        elif not isinstance(newComparisonText, str):
-            raise IOError("The New Compariosn Text is not a String")
-        elif type(dataframe) is not pd.core.frame.DataFrame:
-            raise IOError("The passed object was not a dataframe")
-        elif 'BagOfWords' not in dataframe.columns:
-            raise IOError('The passed dataframe must have a column named TF-IDF.'
-                          ' Make sure this is the dataframe returned from init')
-
-
-        new_tokens = self._tokenizeText(newComparisonText)
-        new_tokens_string = [" ".join(new_tokens)]
-        tfidf_vectorizer_vectors = tfidf_vectorizer.transform(new_tokens_string) #tfidf_vectorizer is a global variavble from above
-        new_vector = tfidf_vectorizer_vectors.toarray().tolist()[0]
-
-        tuples = []
-        # # The following 3 lines are Ephraim's simplified implementation to replace the for loop that follows. The sorting and onwards is not replaced here.
-        # new_pat_vec = [new_vector for row in dataframe['BagOfWords']] # Create a 2d list where each line is the new_vector data, length matching our dataframe
-        # new_comparison = cosine_similarity(dataframe['BagOfWords'].tolist(), new_pat_vec)
-        # tuples = [[name,sim] for name,sim in zip(dataframe[id_col],new_comparison[0])]
-
-        for pn, vec in zip(dataframe[self.id_col],dataframe['TF-IDF']):  # iterates through both of these columns at same time
-            similarity = self.cosineSimilarity(new_vector, vec)  # compares new TF-IDF vector to the ones in dataframe
-            tuples.append([pn, similarity])  # adds to the tuples, contains the patent number and similarity
-
-        tuples = sorted(tuples, key=lambda similarity: similarity[1],reverse=True)  # sort the tuples based off of similarity
-        df = pd.DataFrame(tuples,columns=[self.id_col,'Similarity'])  # turns the sorted tuple into a pandas dataframe
-
-        return df
+    #
+    # def compareNewPatent(self, newComparisonText, dataframe):
+    #     """
+    #     Takes a new patent and the old dataframe, updates the dataframe with the new patent and any new words it adds, returns a tfidf comparison table
+    #
+    #     :param newComparisonText: The new patent to be added to the comparison
+    #     :param dataframe: The old dataframe (with metadata created by init)
+    #     :return: A new pandas dataframe with similarity metrics using cosine similarity based on the tfidf vectors
+    #     """
+    #     if newComparisonText is None:
+    #         raise IOError("The new String is Empty")
+    #     elif not isinstance(newComparisonText, str):
+    #         raise IOError("The New Compariosn Text is not a String")
+    #     elif type(dataframe) is not pd.core.frame.DataFrame:
+    #         raise IOError("The passed object was not a dataframe")
+    #     elif 'BagOfWords' not in dataframe.columns:
+    #         raise IOError('The passed dataframe must have a column named TF-IDF.'
+    #                       ' Make sure this is the dataframe returned from init')
+    #
+    #
+    #     new_tokens = self._tokenizeText(newComparisonText)
+    #     new_tokens_string = [" ".join(new_tokens)]
+    #     tfidf_vectorizer_vectors = tfidf_vectorizer.transform(new_tokens_string) #tfidf_vectorizer is a global variavble from above
+    #     new_vector = tfidf_vectorizer_vectors.toarray().tolist()[0]
+    #
+    #     tuples = []
+    #     # # The following 3 lines are Ephraim's simplified implementation to replace the for loop that follows. The sorting and onwards is not replaced here.
+    #     # new_pat_vec = [new_vector for row in dataframe['BagOfWords']] # Create a 2d list where each line is the new_vector data, length matching our dataframe
+    #     # new_comparison = cosine_similarity(dataframe['BagOfWords'].tolist(), new_pat_vec)
+    #     # tuples = [[name,sim] for name,sim in zip(dataframe[id_col],new_comparison[0])]
+    #
+    #     for pn, vec in zip(dataframe[self.id_col],dataframe['TF-IDF']):  # iterates through both of these columns at same time
+    #         similarity = self.cosineSimilarity(new_vector, vec)  # compares new TF-IDF vector to the ones in dataframe
+    #         tuples.append([pn, similarity])  # adds to the tuples, contains the patent number and similarity
+    #
+    #     tuples = sorted(tuples, key=lambda similarity: similarity[1],reverse=True)  # sort the tuples based off of similarity
+    #     df = pd.DataFrame(tuples,columns=[self.id_col,'Similarity'])  # turns the sorted tuple into a pandas dataframe
+    #
+    #     return df
 
 
     def matches(self, compFrame, docFrame, threshold=.6):
