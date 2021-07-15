@@ -100,7 +100,19 @@ class _DevNLTKPatentPriorArtFinder:
     def _tokenizeCitation(self, string):
         no_commas = string.replace(',',' ')
         tokenized = word_tokenize(no_commas)
-        return list(set(tokenized))
+        finished = []
+        for token in tokenized:
+            str = self._takeAwaySuffix(token)
+            finished += str
+        return list(set(finished))
+
+    def _takeAwaySuffix(self, string):
+        tokens = string.split('-')
+        if(tokens.len == 1): #Didn't have any Prefix or Suffix
+            return str(tokens)
+        else: # If there's a prefix and a suffix, will keep only the prefix along with the patent number, but drop the suffix stored at [2]
+            return str(tokens[0] + '-' + tokens[1])
+
 
 
     # Will add column to dataframe called 'Tokens'
