@@ -25,6 +25,8 @@ class _DevNLTKPatentPriorArtFinder:
         self.plain_dataframe = None
         self.dataframe = None
         self.word_count_matrix = None
+        self.model_words = None
+        self.model_citations = None
 
     # Gabe
     def init(self, csvPath, publicationNumberColumnString='PublicationNumber', comparisonColumnString='Abstract'):
@@ -123,14 +125,21 @@ class _DevNLTKPatentPriorArtFinder:
 
 
 
-    def _word2vecize(selfself, dataframe):
+    def _word2vecize(self, dataframe, original = True):
         tokens = dataframe['Tokens']
-        model_words = Word2Vec(tokens)
         citation_tokens = dataframe['TokenizedCitations']
-        model_citations = Word2Vec(citation_tokens,min_count=1)
+
+        if original:
+            model_words = Word2Vec(tokens)
+            self.model_words = model_words
+            model_citations = Word2Vec(citation_tokens,min_count=1)
+            self.model_citations = model_citations
+        else:
+            model_words = self.model_words
+            model_citations = self.model_citations
+
 
         vecs =[]
-
 
         for (tokenList, citationList) in zip(tokens, citation_tokens):
             sum = np.empty(100)
@@ -333,27 +342,19 @@ class _DevNLTKPatentPriorArtFinder:
             raise IOError('The passed dataframe must have a column named TF-IDF.'
                           ' Make sure this is the dataframe returned from init')
 
-        new_tokens = self._tokenizeText(newComparisonText)
-        #new_corpus = self._createCorpus(dataframe)  # has to create new corpus
-        new_corpus = self.corpus #really supposed to use old corpus, that is why commented out line above
-        new_tokens_string = [" ".join(one_list) for one_list in new_tokens]
-        print(new_tokens_string)
-        #tfidf_vectorizer.fit(tokens_string)
-        tfidf_vectorizer_vectors = tfidf_vectorizer.transform(new_tokens_string)
-        new_vector = tfidf_vectorizer_vectors.toarray().tolist()
-        print(new_vector)
-        print(len(new_vector))
 
+        new_tokens = self._tokenizeText(newComparisonText)
+        new_tokens_string = [" ".join(new_tokens)]
+        tfidf_vectorizer_vectors = tfidf_vectorizer.transform(new_tokens_string) #tfidf_vectorizer is a global variavble from above
+        new_vector = tfidf_vectorizer_vectors.toarray().tolist()[0]
 
         tuples = []
-
         # # The following 3 lines are Ephraim's simplified implementation to replace the for loop that follows. The sorting and onwards is not replaced here.
         # new_pat_vec = [new_vector for row in dataframe['BagOfWords']] # Create a 2d list where each line is the new_vector data, length matching our dataframe
         # new_comparison = cosine_similarity(dataframe['BagOfWords'].tolist(), new_pat_vec)
         # tuples = [[name,sim] for name,sim in zip(dataframe[id_col],new_comparison[0])]
 
         for pn, vec in zip(dataframe[self.id_col],dataframe['TF-IDF']):  # iterates through both of these columns at same time
-            print(len(vec))
             similarity = self.cosineSimilarity(new_vector, vec)  # compares new TF-IDF vector to the ones in dataframe
             tuples.append([pn, similarity])  # adds to the tuples, contains the patent number and similarity
 
@@ -367,13 +368,24 @@ class _DevNLTKPatentPriorArtFinder:
 
     #newPatent needs to be a dataframe with an abstract, and a citations column
     def compareNewPatentW2V(self, newPatent, dataframe):
-        _tokenize(newPatent) #adds tokens of abstract and citations
-        _word2vecize(newPatent) #adds word2vec vectors
+        self._tokenize(newPatent) #adds tokens of abstract and citations
+        self._word2vecize(newPatent) #adds word2vec vectors
+        new_vector = newPatent.iloc[0]['Word2Vec'].tolist()
 
 
+
+
+        tuples = []
 
         for pn, vec in zip(dataframe[self.id_col], dataframe['Word2Vec']):
-            similarity = self.cosineSimilarity()
+            similarity = self.cosineSimilarity(new_vector,vec)
+            tuples.append([pn, similarity])
+
+        tuples = sorted(tuples, key=lambda similarity: similarity[1],reverse=True)
+        df = pd.DataFrame(tuples,columns=[self.id_col,'Similarity'])  # turns the sorted tuple into a pandas dataframe
+
+        return df
+
 
 
 
