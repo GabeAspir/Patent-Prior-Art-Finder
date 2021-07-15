@@ -103,7 +103,7 @@ class _DevNLTKPatentPriorArtFinder:
         finished = []
         for token in tokenized:
             str = self._takeAwaySuffix(token)
-            finished += str
+            finished.append(str)
         return list(set(finished))
 
     def _takeAwaySuffix(self, string):
