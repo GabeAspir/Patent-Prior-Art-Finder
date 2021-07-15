@@ -108,10 +108,8 @@ class _DevNLTKPatentPriorArtFinder:
 
     def _takeAwaySuffix(self, string):
         tokens = string.split('-')
-        if(len(tokens) == 1): #Didn't have any Prefix or Suffix
-            return str(tokens)
-        else: # If there's a prefix and a suffix, will keep only the prefix along with the patent number, but drop the suffix stored at [2]
-            return str(tokens[0] + '-' + tokens[1])
+        #Should always have at least a prefix and the patent, this will take away the suffix or keep it the same
+        return str(tokens[0] + '-' + tokens[1])
 
 
 
