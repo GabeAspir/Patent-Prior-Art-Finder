@@ -164,7 +164,7 @@ class _DevNLTKPatentPriorArtFinder:
                     sum_citations += model_citations.wv[citation]
                 except:
                     pass
-            sum = np.concatenate(sum_words,sum_citations)
+            sum = np.concatenate((sum_words,sum_citations))
             vecs.append(sum)
         dataframe['Word2Vec'] = vecs
 
