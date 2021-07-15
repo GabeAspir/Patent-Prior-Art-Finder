@@ -142,17 +142,19 @@ class _DevNLTKPatentPriorArtFinder:
         vecs =[]
 
         for (tokenList, citationList) in zip(tokens, citation_tokens):
-            sum = np.empty(100)
+            sum_words = np.empty(50)
+            sum_citations = np.empty(50)
             for word in tokenList:
                 try:
-                    sum+=model_words.wv[word]
+                    sum_words += model_words.wv[word]
                 except:
                     pass
             for citation in citationList:
                 try:
-                    sum+=model_citations.wv[citation]
+                    sum_citations += model_citations.wv[citation]
                 except:
                     pass
+            sum = np.concatenate(sum_words,sum_citations)
             vecs.append(sum)
         dataframe['Word2Vec'] = vecs
 
