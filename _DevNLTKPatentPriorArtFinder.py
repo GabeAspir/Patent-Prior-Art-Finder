@@ -11,6 +11,7 @@ from nltk.tokenize import word_tokenize
 from nltk.text import TextCollection
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
+from gensim.models import Word2Vec
 nltk.download('punkt')
 nltk.download('stopwords')
 
@@ -72,6 +73,7 @@ class _DevNLTKPatentPriorArtFinder:
         self._createCorpus(dataframe)
         self._bagOfWordize(dataframe, self.corpus)
         self._TFIDFize(dataframe, self.corpus)
+        self._word2vecize(dataframe)
         self.dataframe = dataframe
         return dataframe
 
@@ -88,9 +90,16 @@ class _DevNLTKPatentPriorArtFinder:
         self.word_count_matrix = dataframe_matrix
 
     # Private methods for init to call
-    # Gabe
     def _tokenize(self, dataframe):
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
+        dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
+
+
+    def _tokenizeCitation(self, string):
+        no_commas = string.replace(',',' ')
+        tokenized = word_tokenize(no_commas)
+        return list(set(tokenized))
+
 
     # Will add column to dataframe called 'Tokens'
     # Gabe
@@ -113,13 +122,56 @@ class _DevNLTKPatentPriorArtFinder:
         dataframe['BagOfWords'] = bows
 
 
+
+    def _word2vecize(selfself, dataframe):
+        tokens = dataframe['Tokens']
+        model_words = Word2Vec(tokens)
+        citation_tokens = dataframe['TokenizedCitations']
+        model_citations = Word2Vec(citation_tokens,min_count=1)
+
+        vecs =[]
+
+
+        for (tokenList, citationList) in zip(tokens, citation_tokens):
+            sum = np.empty(100)
+            for word in tokenList:
+                try:
+                    sum+=model_words.wv[word]
+                except:
+                    pass
+            for citation in citationList:
+                try:
+                    sum+=model_citations.wv[citation]
+                except:
+                    pass
+            vecs.append(sum)
+        dataframe['Word2Vec'] = vecs
+
+
+
+
+    def word2vecTable(self, dataframe):
+        vecTable = pd.DataFrame(cosine_similarity(dataframe['Word2Vec'].tolist()))
+        vecTable.columns = dataframe[self.id_col].tolist()
+        vecTable.index = dataframe[self.id_col].tolist()
+        return vecTable
+
+
+
     # Zach
     def _tf_idf_scikit(self):
         #https://mmuratarat.github.io/2020-04-03/bow_model_tf_idf
+        global  tfidf_vectorizer
         tfidf_vectorizer = TfidfVectorizer(use_idf=True)
-        tfidf_vectorizer_vectors = tfidf_vectorizer.fit_transform(tokens_string)
+        # tfidf_vectorizer_vectors = tfidf_vectorizer.fit_transform(tokens_string) #tokens_string is a global vriable from above
+        tfidf_vectorizer.fit(tokens_string)
+        tfidf_vectorizer_vectors =  tfidf_vectorizer.transform(tokens_string)
         tf_idf_dataframe = pd.DataFrame(tfidf_vectorizer_vectors.toarray(), columns=count_vectorizer.get_feature_names())
         return tf_idf_dataframe
+
+
+
+
 
     def _TFIDFize(self, dataframe, corpus):
         # adding column called 'TF-IDF'
@@ -282,9 +334,16 @@ class _DevNLTKPatentPriorArtFinder:
                           ' Make sure this is the dataframe returned from init')
 
         new_tokens = self._tokenizeText(newComparisonText)
-        new_corpus = self._createCorpus(dataframe)  # has to create new corpus
-        new_vector = self._vectorize_tf_idf(dataframe, new_tokens,
-                                            new_corpus)  # gets a vector with the tf-idf values of new text
+        #new_corpus = self._createCorpus(dataframe)  # has to create new corpus
+        new_corpus = self.corpus #really supposed to use old corpus, that is why commented out line above
+        new_tokens_string = [" ".join(one_list) for one_list in new_tokens]
+        print(new_tokens_string)
+        #tfidf_vectorizer.fit(tokens_string)
+        tfidf_vectorizer_vectors = tfidf_vectorizer.transform(new_tokens_string)
+        new_vector = tfidf_vectorizer_vectors.toarray().tolist()
+        print(new_vector)
+        print(len(new_vector))
+
 
         tuples = []
 
@@ -293,18 +352,30 @@ class _DevNLTKPatentPriorArtFinder:
         # new_comparison = cosine_similarity(dataframe['BagOfWords'].tolist(), new_pat_vec)
         # tuples = [[name,sim] for name,sim in zip(dataframe[id_col],new_comparison[0])]
 
-        for pn, vec in zip(dataframe[self.id_col],
-                           dataframe['TF-IDF']):  # iterates through both of these columns at same time
+        for pn, vec in zip(dataframe[self.id_col],dataframe['TF-IDF']):  # iterates through both of these columns at same time
+            print(len(vec))
             similarity = self.cosineSimilarity(new_vector, vec)  # compares new TF-IDF vector to the ones in dataframe
             tuples.append([pn, similarity])  # adds to the tuples, contains the patent number and similarity
 
-        tuples = sorted(tuples, key=lambda similarity: similarity[1],
-                        reverse=True)  # sort the tuples based off of similarity
-        df = pd.DataFrame(tuples,
-                          columns=[self.id_col,
-                                   'Similarity'])  # turns the sorted tuple into a pandas dataframe
+        tuples = sorted(tuples, key=lambda similarity: similarity[1],reverse=True)  # sort the tuples based off of similarity
+        df = pd.DataFrame(tuples,columns=[self.id_col,'Similarity'])  # turns the sorted tuple into a pandas dataframe
 
         return df
+
+
+
+
+    #newPatent needs to be a dataframe with an abstract, and a citations column
+    def compareNewPatentW2V(self, newPatent, dataframe):
+        _tokenize(newPatent) #adds tokens of abstract and citations
+        _word2vecize(newPatent) #adds word2vec vectors
+
+
+
+        for pn, vec in zip(dataframe[self.id_col], dataframe['Word2Vec']):
+            similarity = self.cosineSimilarity()
+
+
 
     # adds new patents to the dataframe that we want to use. Will help us add patents that we know are similiar
     # must have same key column names (for the publication number, and abstract) as the dataframe that adding to
