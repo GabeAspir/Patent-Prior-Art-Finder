@@ -28,7 +28,7 @@ class _DevNLTKPatentPriorArtFinder:
         self.model_words = None
         self.model_citations = None
 
-    # Gabe
+
     def init(self, csvPath, publicationNumberColumnString='PublicationNumber', comparisonColumnString='Abstract'):
         """
         Prepares csv patents data for similarity functions by creating a pandas dataframe that can be passed to the desired function.
@@ -104,7 +104,7 @@ class _DevNLTKPatentPriorArtFinder:
 
 
     # Will add column to dataframe called 'Tokens'
-    # Gabe
+
     def _tokenizeText(self, string):
         #prepares the string for tokenization, to lowercase, then removes punctutation, then changes numbers to _NUM_
         string = string.lower()
@@ -166,7 +166,6 @@ class _DevNLTKPatentPriorArtFinder:
         return vecTable
 
 
-
     # Zach
     def _tf_idf_scikit(self):
         #https://mmuratarat.github.io/2020-04-03/bow_model_tf_idf
@@ -181,7 +180,6 @@ class _DevNLTKPatentPriorArtFinder:
 
 
 
-
     def _TFIDFize(self, dataframe, corpus):
         # adding column called 'TF-IDF'
         tf_idf_dataframe = self._tf_idf_scikit()
@@ -189,60 +187,8 @@ class _DevNLTKPatentPriorArtFinder:
         dataframe['TF-IDF'] = tf_idfs
 
 
-    # Zach
-    def jaccardTable(self, dataframe):
-        """ Takes a pandas dataframe with the metadata produced by init and returns a new table showing the jaccard index of each pair of patents"""
-
-        if dataframe is None:
-            raise IOError("The dataframe was empty")
-        elif type(dataframe) is not pd.core.frame.DataFrame:
-            raise IOError("The passed object was not a dataframe")
-        elif 'BagOfWords' not in dataframe.columns:
-            raise IOError('The passed dataframe must have a column named BagOfWords.'
-                          ' Make sure this is the dataframe returned from init')
-        for row in dataframe['BagOfWords']:
-            if isinstance(row, list) is False:
-                raise IOError('The contents of BagOfWords column were not all lists.')
-            elif all(isinstance(entry, (int, float)) for entry in row) is False:
-                raise IOError('The contents of BagOfWords column were not all lists of numbers.')
 
 
-        table = pd.DataFrame(1 - pairwise_distances(np.asarray(dataframe['BagOfWords'].tolist()), metric='jaccard'))
-        table.columns = dataframe[self.id_col].tolist()
-        table.index = dataframe[self.id_col].tolist()
-
-        return table
-
-    # accepts vector bag of words
-    def jaccardSimilarity(self, patent1, patent2):
-        """
-        Returns the Jaccard Similarity index of 2 patents
-
-        :param patent1: Vector representing the text of 1 patent's text
-        :param patent2: Vector representing the text of a 2nd patent's text
-        :return: The jaccard similarity index of those 2 patents
-        """
-
-        if patent1 is None or patent2 is None:
-            raise IOError("One of or both of the Patents are empty")
-        elif type(patent1) is not list:
-            raise IOError("Patent input must be a list")
-        elif len(patent1) != len(patent2):
-            raise IOError("Bag of Words must be the same length")
-
-        count = 0
-        # counting the number of total words combined between both of them
-        for x, y in zip(patent1, patent2):
-            if x != 0 or y != 0:  # not equaling 0 means that it occurs at least once
-                count += 1
-        numerator = 0
-        # Counting the number of words in both
-        for x, y in zip(patent1, patent2):
-            if x != 0 and y != 0:
-                numerator += 1
-        return (numerator / count)
-
-    # Zach
     def cosineSimilarity(self, patent1, patent2):
         """
         Computes the cosine similarity of 2 patents. Used in CompareNewPatent below.
@@ -265,7 +211,7 @@ class _DevNLTKPatentPriorArtFinder:
         v2 = np.array(patent2).reshape(1, -1)
         return cosine_similarity(v1, v2)[0][0]
 
-    # Ephraim
+
     def cosineTable(self, dataframe):
         """
          Takes a dataframe and returns a table with the cosine simialrity metrics of each pair
@@ -320,7 +266,7 @@ class _DevNLTKPatentPriorArtFinder:
 
         return newTable
 
-    # Zach
+
     # Comparing new patent based on TF-IDF/Cosine Similarity
     # dataframe must have TF-IDF column
 
@@ -369,7 +315,7 @@ class _DevNLTKPatentPriorArtFinder:
     #newPatent needs to be a dataframe with an abstract, and a citations column
     def compareNewPatentW2V(self, newPatent, dataframe):
         self._tokenize(newPatent) #adds tokens of abstract and citations
-        self._word2vecize(newPatent) #adds word2vec vectors
+        self._word2vecize(newPatent, False) #adds word2vec vectors
         new_vector = newPatent.iloc[0]['Word2Vec'].tolist()
 
 
