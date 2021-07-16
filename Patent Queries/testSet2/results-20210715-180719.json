@@ -1,0 +1,52 @@
+[
+  {
+    "Publication_Number": "US-2019027855-A1",
+    "Abstract": "A plug connector includes: a circuit board; a mating joint having an insulating body and multiple conductive terminals provided on the insulating body; at least two outer power terminals; and a cable having at least two outer power lines, multiple inner power lines and multiple signal lines. The conductive terminals are electrically connected to the circuit board, and include multiple inner power terminals and multiple signal terminals. Each outer power terminal has a conducting portion and a tail portion. The tail portion is fixedly provided on the circuit board, and the conducting portion is located on a lateral side of the mating joint. Each outer power line is electrically connected to the tail portion of a corresponding outer power terminal. The inner power lines are electrically connected with the inner power terminals respectively. The signal lines are electrically connected with the signal terminals respectively.",
+    "Citations": "US-2009291596-A1,US-2010151732-A1,US-2013344709-A1,US-2015364871-A1,US-2016204562-A1,US-2017047691-A1,US-9768568-B1,US-2018166825-A1,US-2009291596-A1,US-2010151732-A1,US-2013344709-A1,US-2015364871-A1,US-2016204562-A1,US-2017047691-A1,US-9768568-B1,US-2018166825-A1"
+  },
+  {
+    "Publication_Number": "US-2017266720-A1",
+    "Abstract": "A pressure control system and means for pressure pouring of cast steel wheels, comprising a control system and a main gas circuit. The control system comprises an upper computer, a PLC unit, a sensor, an operation box and an electronic valve. The upper computer is connected via a signal line with the PLC unit which is connected with each of the sensor, the operation box and the electronic valve. The sensor comprises an inside-tank pressure sensor and an inside-mold liquid level detecting sensor. The electronic valve comprises a quick breaking valve and a servo valve. The main gas circuit comprises a gas pressure bag, a ball valve, a pressure reducing valve, a solenoid valve, and a pressure tank. The gas pressure bag, the ball valve, the pressure reducing valve, the solenoid valve and the pressure tank are connected with one another via gas tubes.",
+    "Citations": "US-4291575-A,US-4449568-A"
+  },
+  {
+    "Publication_Number": "US-2014364690-A1",
+    "Abstract": "An imaging device includes a light source capable of emitting multi-types of illumination light beams, an imaging unit including an imaging element driven by a rolling shutter method, a light source control unit, a frame image control unit, and an image generation unit. The frame image control unit controls the light source control unit and the imaging unit so as to obtain an output having a frame group, in which second exposure frames Exp2 and Exp4 are respectively disposed before and after a first exposure frame Exp3, as one period. The imaging signal generation unit generates an imaging signal according to illumination light using a ratio of a period from the exposure start timing of each horizontal pixel line to the switching timing of the illumination light and a period from the switching timing of the illumination light to the exposure end timing in the first and second exposure frames.",
+    "Citations": "US-2007177021-A1"
+  },
+  {
+    "Publication_Number": "US-2017030742-A1",
+    "Abstract": "A correction apparatus for an angle sensor includes a correction information generator for generating correction information, and a correction processing unit for performing correction processing in the course of generation of a detected angle value by an angle detector. Details of the correction processing are determined on the basis of the correction information. The correction information generator includes an error estimate generation unit and a correction information determination unit. The error estimate generation unit generates, on the basis of a first signal and a second signal, an error estimate containing a variable component that varies depending on an ideal angle estimate. The correction information determination unit determines the correction information on the basis of the error estimate.",
+    "Citations": "US-2006076480-A1,US-7852070-B2,US-2011115477-A1,US-2012095712-A1,US-2014336878-A1,US-2015158396-A1,US-2017314975-A1,US-2017350726-A1"
+  },
+  {
+    "Publication_Number": "US-2018076742-A1",
+    "Abstract": "A back electromotive force of a rotating motor is converted into a voltage for a load by driving, in accordance with a duty cycle, at least one switching circuit that couples the back electromotive force to a load through a rectifying circuit. An error signal is generated that is a difference between the load voltage and a reference voltage. The duty cycle is controlled as a function of the error signal to cause the load voltage to approach the reference voltage.",
+    "Citations": "US-6762901-B2,US-2010053802-A1,US-2010149695-A1"
+  },
+  {
+    "Publication_Number": "US-2017213537-A1",
+    "Abstract": "A noise cancellation system, comprising: an input for a digital signal, the digital signal having a first sample rate; a digital filter, connected to the input to receive the digital signal; a decimator, connected to the input to receive the digital signal and to generate a decimated signal at a second sample rate lower than the first sample rate; and a processor. The processor comprises: an emulation of the digital filter, connected to receive the decimated signal and to generate an emulated filter output; and a control circuit, for generating a control signal on the basis of the emulated filter output. The control signal is applied to the digital filter to control a filter characteristic thereof.",
+    "Citations": "US-2004013038-A1"
+  },
+  {
+    "Publication_Number": "US-2020111503-A1",
+    "Abstract": "A sound playback device and a noise reducing method thereof are disclosed. The method comprises the steps of: receiving an input sound signal, wherein the input sound signal includes a noise; performing a first denoising processing procedure to the input sound signal to obtain a first processing sound signal; performing a noise analysis procedure to the input sound signal to generate an analysis result; performing a second denoising processing procedure to the first processing sound signal to obtain a second processing sound signal according to the analysis result so as to reduce the noise; and outputting the second processing sound signal.",
+    "Citations": "US-2006031067-A1,US-2014105412-A1,US-2006031067-A1,US-2014105412-A1"
+  },
+  {
+    "Publication_Number": "US-2018054200-A1",
+    "Abstract": "In accordance with an embodiment, a method includes receiving a first differential logic signal using a first branch of a circuit that extends from a voltage supply of the circuit as far as an earth terminal of the circuit and has at least one first differential transistor pair, receiving a second differential logic signal using a second branch of the circuit that extends from the voltage supply to the earth terminal and has at least one second differential transistor pair, conducting a current flow between the first branch and the second branch, and outputting an output signal by the second branch.",
+    "Citations": "US-6614291-B1,US-7688125-B2,US-8410831-B2"
+  },
+  {
+    "Publication_Number": "US-2017070096-A1",
+    "Abstract": "An inductive power transfer (IPT) converter has a first switching means adapted to produce a time varying input power signal comprising a substantially unipolar stepped waveform, and a second switching means adapted to modify the time varying input power signal provided by the first switching means to produce a modified input power signal. The converter is coupled to a resonant circuit to receive the modified input signal.",
+    "Citations": "US-2014252870-A1"
+  },
+  {
+    "Publication_Number": "US-2017013466-A1",
+    "Abstract": "Embodiments of the present disclosure provide a signal retransmission apparatus and method and a communication system. The method includes: a first UE determines a resource for retransmitting a signal according to a resource for initially transmitting the signal and a frequency hopping pattern; and retransmits the signal to a second UE according to the determined resource. With the embodiments of the present disclosure, interference between UEs may be randomized as possible, and complexity of blind detection by receiver end UE may be lowered as possible.",
+    "Citations": "US-2015030011-A1"
+  }
+]

@@ -1,0 +1,52 @@
+[
+  {
+    "Publication_Number": "US-2015374372-A1",
+    "Abstract": "Adapter assemblies are provided for selectively interconnecting a surgical end effector that is configured to perform at least a pair of functions and a surgical device that is configured to actuate the end effector, wherein the end effector includes a first axially translatable drive member and a second axially translatable drive member, and wherein the surgical device includes a first rotatable drive shaft and a second rotatable drive shaft.",
+    "Citations": "US-6387113-B1,US-2008035701-A1,US-2009240262-A1,US-2010108741-A1,US-2011174099-A1"
+  },
+  {
+    "Publication_Number": "US-2016042567-A1",
+    "Abstract": "An immersive display and a method of operating the immersive display to provide information relating to an object. The method includes receiving information from an input device of the immersive display or coupled to the immersive display, detecting an object based on the information received from the input device, and displaying a representation of the object on images displayed on a display of the immersive display such that attributes of the representation distinguish the representation from the images displayed on the display, wherein the representation is displayed at a location on the display that corresponds with a location of the object.",
+    "Citations": "US-2014063064-A1,US-8878750-B1,US-2015062163-A1,US-2015138087-A1,US-2016025982-A1,US-2016110618-A1,US-2016240012-A1"
+  },
+  {
+    "Publication_Number": "US-2018154796-A1",
+    "Abstract": "A control apparatus ( 80 ) for a vehicle ( 10; 100 ) having an electric motor (MG 2;  MG), and a step-variable transmission ( 20; 110 ) which is selectively placed in a plurality of speed positions with engagement of at least one of a plurality of coupling devices (CB), wherein the vehicle runs rearward with a reverse drive torque (TmR) of the electric motor generated in a forward-drive low-speed position of the transmission. The control apparatus includes: a first shift control portion ( 86 ) operated during a coasting shift-down action of the transmission to the low-speed position and configured to temporarily increase the forward drive torque (TmF) of the electric motor above its required value, for thereby temporarily increasing an input torque of the transmission to raise its input speed toward a synchronizing speed in the low-speed position. The first shift control portion commands an engaging-side coupling device, which is one of the coupling devices for the forward-drive low-speed position and which was placed in its released state before the shift-down action, to be brought into its engaged state after the input speed has been raised to a predetermined value; and a second shift control portion ( 88 ) operated when switching to rearward running of the vehicle is required during the coasting shift-down action and configured to increase an engaging force of the engaging-side coupling device, for thereby raising the input speed of the transmission toward the synchronizing speed, to bring the engaging-side coupling device into the engaged state.",
+    "Citations": "US-6729198-B2,US-8886423-B1,US-9061675-B2,US-9090247-B2,US-2019047565-A1"
+  },
+  {
+    "Publication_Number": "US-2017266989-A1",
+    "Abstract": "A conveying device includes a restrictor disposed at a predetermined distance from a surface of a sheet material conveyed along a sheet-material conveyance path. The restrictor includes a sheet-material opposing portion that opposes the sheet-material conveyance path. The sheet-material opposing portion is movable to a downstream side in a sheet-material conveyance direction.",
+    "Citations": "JP-H07314825-A"
+  },
+  {
+    "Publication_Number": "US-2018244467-A1",
+    "Abstract": "A method for fetching a target bin stored in a storage system (100), wherein the storage system includes a three-dimensional storage grid containing a plurality of bins stacked in vertical stacks, supporting rails (13) on the grid structure, and a plurality of vehicles (1), controllably arranged to move individually on the supporting rails. The method is performed by a control device in the system and comprises controlling at least one non-target vehicle to operate as intermediate storage for a bin located vertically above the target bin (5); controlling a target vehicle to pick up the target bin, and controlling the at least one non-target vehicle and the target vehicle to be positioned adjacent to each other in a linear manner on the supporting rails. A corresponding storage system has also been disclosed.",
+    "Citations": "US-7591630-B2,US-2011106295-A1,US-2015175354-A1,US-2016107848-A1"
+  },
+  {
+    "Publication_Number": "US-2017065752-A1",
+    "Abstract": "A device for removing objects from an in vivo subject includes vacuum tube adapted to be associated with a sheath sized to be inserted into a passageway of the subject. The vacuum tube provides a suction channel extending therethrough. A navigation mechanism is designed to guide the vacuum tube through the passageway. The removal device is designed to remove debris having an approximate diameter of between about 0.0001 mm to about 8 mm.",
+    "Citations": "US-2003216760-A1,US-2009163846-A1"
+  },
+  {
+    "Publication_Number": "US-2019182641-A1",
+    "Abstract": "On-board equipment in a motor vehicle includes a C-V2X communication device receiving a first signal from road side equipment having a known position. The C-V2X communication device transmits a second signal having content that is dependent upon a length of time in which the first signal traveled from the road side equipment to the C-V2X communication device. A GPS device is communicatively coupled to the C-V2X communication device and receives the second signal from the C-V2X communication device. The GPS device estimates a position of the vehicle. The estimating is dependent upon the second signal from the C-V2X communication device.",
+    "Citations": "US-2019019409-A1,US-2019132709-A1,US-2019137595-A1,US-2019019409-A1,US-2019132709-A1,US-2019137595-A1"
+  },
+  {
+    "Publication_Number": "US-2019042775-A1",
+    "Abstract": "A method of operating an access control system comprising a server ( 3 ), a control device ( 4 ) and a point of sales device ( 1 ) for access permissions to a covered area. An algorithm is installed on the point of sales device ( 1 ) which can only be executed locally if unlocked by a key transmitted by the server. If a point of sales device is not connected to the server, the algorithm is executed using the key and access permission is generated, encrypted and marked as an offline-generated access permission and encoded. If access control is carried out while the point of sales device is unconnected, the offline-generated access permission is read out by an access control device ( 4 ). Based on labelling as an offline-generated access permission, it is identified as such and the validity of the access permission is verified based on the data encoded by the point of sales device.",
+    "Citations": "US-2009065571-A1,US-2011125566-A1,US-2012039469-A1,US-2015121465-A1,US-9325698-B2,US-2016171491-A1,US-2016314449-A1,US-2016358391-A1,US-2018276666-A1"
+  },
+  {
+    "Publication_Number": "US-2019114692-A1",
+    "Abstract": "Systems and apparatuses for capturing an image of a vehicle for which roadside assistance is being requested are provided. The image may be captured by a mobile device and the mobile device may geotag location information to the image. The image and associated geotag location information may then be processed to determine a location of the vehicle and a roadside assistance issue for which service is being requested. The image may be further analyzed to determine a context including, a make, model and/or year of the vehicle, whether special equipment is needed to service the vehicle, whether the vehicle is located in a particular situation (e.g., within a structure, in a ditch, or the like). The information obtained from the image may be used to determine a type of service to provide to the vehicle and to identify one or more service providers to dispatch to the vehicle.",
+    "Citations": "US-2008157943-A1,US-2013086109-A1,US-2014229286-A1,US-2017368897-A1,US-2018308353-A1,US-2018357898-A1,US-2019019141-A1,US-2019019167-A1,US-2008157943-A1,US-2013086109-A1,US-2014229286-A1,US-2017368897-A1,US-2018308353-A1,US-2018357898-A1,US-2019019141-A1,US-2019019167-A1"
+  },
+  {
+    "Publication_Number": "US-2016023214-A1",
+    "Abstract": "A point of use analyzer includes pump, valve, port, and storage channel. The storage channel may hold multiple assay packets composed of reagent aliquots separated by bounding slugs. The storage channel may define an elongated lumen having two ends with each of the ends coupled to the valve. A sampling device for use with the analyzer engages the port and may include a recurrent coaxial tube having a separation medium. A method of using the analyzer with the sampling device includes steps of pumping a fluid to displace a sample into the separation medium and out through the opposed connection.",
+    "Citations": "US-5399497-A,US-2009235990-A1"
+  }
+]
