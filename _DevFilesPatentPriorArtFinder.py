@@ -23,7 +23,7 @@ class _DevFilesPatentPriorArtFinder:
         self.word_count_matrix = None
         self.model_words = None
         self.model_citations = None
-        self.tfidf_vectorizer = None
+        self.tfidf_vectorizer = TfidfVectorizer(use_idf=True)
 
         if dirPath is None:
             raise IOError('The passed file path was empty')
@@ -39,21 +39,19 @@ class _DevFilesPatentPriorArtFinder:
         for entry in os.scandir(dirPath):
             if(first):
                 self._makeModel(entry)
-                self._tfidf_make(entry)
                 first = False
             else:
                 self._addtoModel(entry)
-                self._tfidf_make(entry)
         for entry in os.scandir(dirPath):
             self._getEmbeding(entry)
-            self._tfidf_embed(entry)
 
 
     # Private methods for init to call
     def _makeModel(self,file):
-        dataframe= pd.io.json.read_json(file, orient = 'records')
+        dataframe= pd.io.json.read_json(file, orient = 'records',lines=True)
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
+        self._tfidf_make(dataframe['Tokens'])
         dataframe.to_json(file, orient='records', indent=4)
 
         model_words = Word2Vec(dataframe['Tokens'])
@@ -65,6 +63,7 @@ class _DevFilesPatentPriorArtFinder:
         dataframe= pd.io.json.read_json(file, orient = 'records')
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
+        self._tfidf_make(dataframe['Tokens'])
         dataframe.to_json(file, orient='records', indent=4)
         self.model_words.build_vocab(dataframe["Tokens"], update = True)
         self.model_words.train(dataframe["Tokens"], total_examples= self.model_citations.corpus_count, epochs=self.model_words.epochs)
@@ -98,9 +97,10 @@ class _DevFilesPatentPriorArtFinder:
         return [word for word in tokenized if not word.lower() in stop_words]
 
     def _getEmbeding(self,file):
-        data= pd.io.json.read_json(file, orient = 'records')
-        text_tokens = data['Tokens']
-        citation_tokens = data['TokenizedCitations']
+        dataframe= pd.io.json.read_json(file, orient = 'records')
+        text_tokens = dataframe['Tokens']
+        citation_tokens = dataframe['TokenizedCitations']
+        dataframe['TF-IDF'] = self._tfidf_embed(dataframe['Tokens'])
         vecs =[]
 
         for (tokenList, citationList) in zip(text_tokens, citation_tokens):
@@ -118,27 +118,19 @@ class _DevFilesPatentPriorArtFinder:
                     pass
             sum = np.concatenate((sum_words,sum_citations))
             vecs.append(sum)
-        data['Word2Vec'] = vecs
-        data.to_json(file, orient = 'records', indent=4)
+        dataframe['Word2Vec'] = vecs
+        dataframe.to_json(file, orient = 'records', indent=4)
 
 
 
-    def _tfidf_make(self, file):
-        self.tfidf_vectorizer = TfidfVectorizer(use_idf=True)
-        dataframe = pd.io.json.read_json(file, orient ='records')
-        dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
-        tokens_list = dataframe['Tokens'].tolist()
-        token_string = [" ".join(one_list) for one_list in tokens_list]
+    def _tfidf_make(self, tokens):
+        token_string = [" ".join(one_list) for one_list in tokens.tolist()]
         self.tfidf_vectorizer.fit(token_string)
 
-    def _tfidf_embed(self, file):
-        dataframe = pd.io.json.read_json(file, orient='records')
-        dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
-        tokens_list = dataframe['Tokens'].tolist()
-        token_string = [" ".join(one_list) for one_list in tokens_list]
+    def _tfidf_embed(self, tokens):
+        token_string = [" ".join(one_list) for one_list in tokens.tolist()]
         new_tfidf_vector = self.tfidf_vectorizer.transform(token_string)
-        dataframe['TF-IDF'] = new_tfidf_vector.toarray().tolist()
-        dataframe.to_json(file, orient = 'records', indent=4)
+        return new_tfidf_vector.toarray().tolist()
 
 
 
@@ -190,7 +182,8 @@ class _DevFilesPatentPriorArtFinder:
         for file in os.scandir(dirPath):
             dataframe = pd.io.json.read_json(file, orient='records')
             for index,doc in dataframe.iterrows():
-                print(doc)
+                print(doc['Word2Vec'])
+                print(newPatentSeries['Word2Vec'])
                 if self.cosineSimilarity(newPatentSeries['Word2Vec'], doc['Word2Vec']) >= threshold:
                     matches.append(doc)
         return matches
