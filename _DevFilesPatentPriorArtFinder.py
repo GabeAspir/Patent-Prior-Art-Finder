@@ -1,4 +1,4 @@
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import cosine_similarity, pairwise_distances
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 import pandas as pd
 import numpy as np
@@ -54,7 +54,7 @@ class _DevFilesPatentPriorArtFinder:
         dataframe= pd.io.json.read_json(file, orient = 'records')
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
-        dataframe.to_json(file, orient='records')
+        dataframe.to_json(file, orient='records', indent=4)
 
         model_words = Word2Vec(dataframe['Tokens'])
         self.model_words = model_words
@@ -65,7 +65,7 @@ class _DevFilesPatentPriorArtFinder:
         dataframe= pd.io.json.read_json(file, orient = 'records')
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
-        dataframe.to_json(file, orient='records')
+        dataframe.to_json(file, orient='records', indent=4)
         self.model_words.build_vocab(dataframe["Tokens"], update = True)
         self.model_words.train(dataframe["Tokens"], total_examples= self.model_citations.corpus_count, epochs=self.model_words.epochs)
         self.model_words.build_vocab(dataframe["TokenizedCitations"], update=True)
@@ -119,7 +119,7 @@ class _DevFilesPatentPriorArtFinder:
             sum = np.concatenate((sum_words,sum_citations))
             vecs.append(sum)
         data['Word2Vec'] = vecs
-        data.to_json(file, orient = 'records')
+        data.to_json(file, orient = 'records', indent=4)
 
 
 
@@ -138,7 +138,7 @@ class _DevFilesPatentPriorArtFinder:
         token_string = [" ".join(one_list) for one_list in tokens_list]
         new_tfidf_vector = self.tfidf_vectorizer.transform(token_string)
         dataframe['TF-IDF'] = new_tfidf_vector.toarray().tolist()
-        dataframe.to_json(file, orient = 'records')
+        dataframe.to_json(file, orient = 'records', indent=4)
 
 
 
@@ -157,8 +157,8 @@ class _DevFilesPatentPriorArtFinder:
 
         if patent1 is None or patent2 is None:
             raise IOError("One of or both of the Patents are empty")
-        elif type(patent1) is not list:
-            raise IOError("Patent input must be a list")
+        # elif type(patent1) is not list:
+        #     raise IOError("Patent input must be a list, not "+str(type(patent1)))
         elif len(patent1) != len(patent2):
             raise IOError("Bag of Words must be the same length")
 
@@ -169,60 +169,28 @@ class _DevFilesPatentPriorArtFinder:
 
     # Comparing new patent based on TF-IDF/Cosine Similarity
     # dataframe must have TF-IDF column
-    #
-    # def compareNewPatent(self, newComparisonText, dataframe):
-    #     """
-    #     Takes a new patent and the old dataframe, updates the dataframe with the new patent and any new words it adds, returns a tfidf comparison table
-    #
-    #     :param newComparisonText: The new patent to be added to the comparison
-    #     :param dataframe: The old dataframe (with metadata created by init)
-    #     :return: A new pandas dataframe with similarity metrics using cosine similarity based on the tfidf vectors
-    #     """
-    #     if newComparisonText is None:
-    #         raise IOError("The new String is Empty")
-    #     elif not isinstance(newComparisonText, str):
-    #         raise IOError("The New Compariosn Text is not a String")
-    #     elif type(dataframe) is not pd.core.frame.DataFrame:
-    #         raise IOError("The passed object was not a dataframe")
-    #     elif 'BagOfWords' not in dataframe.columns:
-    #         raise IOError('The passed dataframe must have a column named TF-IDF.'
-    #                       ' Make sure this is the dataframe returned from init')
-    #
-    #
-    #     new_tokens = self._tokenizeText(newComparisonText)
-    #     new_tokens_string = [" ".join(new_tokens)]
-    #     tfidf_vectorizer_vectors = tfidf_vectorizer.transform(new_tokens_string) #tfidf_vectorizer is a global variavble from above
-    #     new_vector = tfidf_vectorizer_vectors.toarray().tolist()[0]
-    #
-    #     tuples = []
-    #     # # The following 3 lines are Ephraim's simplified implementation to replace the for loop that follows. The sorting and onwards is not replaced here.
-    #     # new_pat_vec = [new_vector for row in dataframe['BagOfWords']] # Create a 2d list where each line is the new_vector data, length matching our dataframe
-    #     # new_comparison = cosine_similarity(dataframe['BagOfWords'].tolist(), new_pat_vec)
-    #     # tuples = [[name,sim] for name,sim in zip(dataframe[id_col],new_comparison[0])]
-    #
-    #     for pn, vec in zip(dataframe[self.id_col],dataframe['TF-IDF']):  # iterates through both of these columns at same time
-    #         similarity = self.cosineSimilarity(new_vector, vec)  # compares new TF-IDF vector to the ones in dataframe
-    #         tuples.append([pn, similarity])  # adds to the tuples, contains the patent number and similarity
-    #
-    #     tuples = sorted(tuples, key=lambda similarity: similarity[1],reverse=True)  # sort the tuples based off of similarity
-    #     df = pd.DataFrame(tuples,columns=[self.id_col,'Similarity'])  # turns the sorted tuple into a pandas dataframe
-    #
-    #     return df
-
-
-    def matches(self, compFrame, docFrame, threshold=.6):
-        print("Matches: ")
-        print("____________________")
-        for r in range(0, len(compFrame)):
-            for n in range(0, r + 1):
-                entry = compFrame.iloc[n][r]
-                if type(entry) is not str and entry < .99 and entry >= threshold:
-                    print("val: " + str(compFrame.iloc[n][r]))
-                    print(compFrame.columns[r])
-                    print(compFrame.columns[n])
-                    print("col: " + str(n))
-                    print("row: " + str(r))
-                    print(docFrame[self.txt_col][n])
-                    print(docFrame[self.txt_col][r])
-                    print()
-        print("____________________")
+    def compareNewPatent(self, newPatentSeries, dirPath, threshold):
+        newPatentSeries['Tokens'] = self._tokenizeText(string=newPatentSeries['Abstract'])
+        newPatentSeries['TokenizedCitations']= self._tokenizeCitation(string=newPatentSeries['Citations'])
+        sum_words = np.empty(50)
+        sum_citations = np.empty(50)
+        for word in newPatentSeries['Tokens']:
+            try:
+                sum_words += self.model_words.wv[word]
+            except:
+                pass
+        for citation in newPatentSeries['TokenizedCitations']:
+            try:
+                sum_citations += self.model_citations.wv[citation]
+            except:
+                pass
+        sum = np.concatenate((sum_words,sum_citations))
+        newPatentSeries['Word2Vec']= sum
+        matches = []
+        for file in os.scandir(dirPath):
+            dataframe = pd.io.json.read_json(file, orient='records')
+            for index,doc in dataframe.iterrows():
+                print(doc)
+                if self.cosineSimilarity(newPatentSeries['Word2Vec'], doc['Word2Vec']) >= threshold:
+                    matches.append(doc)
+        return matches
