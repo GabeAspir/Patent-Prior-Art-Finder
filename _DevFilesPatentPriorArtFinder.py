@@ -24,7 +24,7 @@ class _DevFilesPatentPriorArtFinder:
         self.model_words = None
         self.model_citations = None
         self.tfidf_vectorizer = TfidfVectorizer(use_idf=True)
-
+        self.dirPath= dirPath
         if dirPath is None:
             raise IOError('The passed file path was empty')
 
@@ -32,27 +32,28 @@ class _DevFilesPatentPriorArtFinder:
         self.txt_col = comparisonColumnString
         self.cit_col = cit_col
 
+    def train(self):
         # Iterates over the files in the directory twice.
         # Once to save the tokenization column to the file, and adds the file to the model's training
         # 2nd time to append the w2v encodings generated from the fully trained model to the files.
         first=True
-        for entry in os.scandir(dirPath):
+        for entry in os.scandir(self.dirPath):
             if(first):
                 self._makeModel(entry)
                 first = False
             else:
                 self._addtoModel(entry)
-        for entry in os.scandir(dirPath):
-            self._getEmbeding(entry)
-
-
+        print("Tokenization Completed")
+        for entry in os.scandir(self.dirPath):
+            self._getEmbeding(self.sep(entry))
+        print("Embedings completed")
     # Private methods for init to call
     def _makeModel(self,file):
         dataframe= pd.io.json.read_json(file, orient = 'records',lines=True)
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
         self._tfidf_make(dataframe['Tokens'])
-        dataframe.to_json(file, orient='records', indent=4)
+        dataframe.to_json(self.sep(file), orient='records', indent=4)
 
         model_words = Word2Vec(dataframe['Tokens'])
         self.model_words = model_words
@@ -64,7 +65,7 @@ class _DevFilesPatentPriorArtFinder:
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
         self._tfidf_make(dataframe['Tokens'])
-        dataframe.to_json(file, orient='records', indent=4)
+        dataframe.to_json(self.sep(file), orient='records', indent=4)
         self.model_words.build_vocab(dataframe["Tokens"], update = True)
         self.model_words.train(dataframe["Tokens"], total_examples= self.model_citations.corpus_count, epochs=self.model_words.epochs)
         self.model_words.build_vocab(dataframe["TokenizedCitations"], update=True)
@@ -132,7 +133,10 @@ class _DevFilesPatentPriorArtFinder:
         new_tfidf_vector = self.tfidf_vectorizer.transform(token_string)
         return new_tfidf_vector.toarray().tolist()
 
-
+    def sep(self,path):
+        def sep(path):
+            head, tail = os.path.split(path.path)
+            return head + "\emb" + tail
 
 
 
