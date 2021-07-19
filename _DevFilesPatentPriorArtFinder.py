@@ -32,27 +32,38 @@ class _DevFilesPatentPriorArtFinder:
         self.txt_col = comparisonColumnString
         self.cit_col = cit_col
 
+        try:
+            os.mkdir(dirPath+"\emb")
+        except:
+            pass
+
     def train(self):
         # Iterates over the files in the directory twice.
         # Once to save the tokenization column to the file, and adds the file to the model's training
         # 2nd time to append the w2v encodings generated from the fully trained model to the files.
         first=True
         for entry in os.scandir(self.dirPath):
-            if(first):
-                self._makeModel(entry)
-                first = False
-            else:
-                self._addtoModel(entry)
+            if entry.is_file(): # To avoid entering the emb directory
+                print("tokenizing "+str(entry))
+                if(first):
+                    self._makeModel(entry)
+                    first = False
+                else:
+                    self._addtoModel(entry)
         print("Tokenization Completed")
         for entry in os.scandir(self.dirPath):
-            self._getEmbeding(self.sep(entry))
-        print("Embedings completed")
-    # Private methods for init to call
+            if entry.is_file(): # To avoid entering the emb directory
+                print("getting embedding of "+str(entry))
+                self._getEmbedding(self.sep(entry))
+        print("Embeddings completed")
+
+    # Private methods for train to call
     def _makeModel(self,file):
         dataframe= pd.io.json.read_json(file, orient = 'records',lines=True)
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
         self._tfidf_make(dataframe['Tokens'])
+        print("Writing "+str(self.sep(file)))
         dataframe.to_json(self.sep(file), orient='records', indent=4)
 
         model_words = Word2Vec(dataframe['Tokens'])
@@ -65,7 +76,9 @@ class _DevFilesPatentPriorArtFinder:
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
         self._tfidf_make(dataframe['Tokens'])
+        print("Writing "+str(self.sep(file)))
         dataframe.to_json(self.sep(file), orient='records', indent=4)
+
         self.model_words.build_vocab(dataframe["Tokens"], update = True)
         self.model_words.train(dataframe["Tokens"], total_examples= self.model_citations.corpus_count, epochs=self.model_words.epochs)
         self.model_words.build_vocab(dataframe["TokenizedCitations"], update=True)
@@ -97,7 +110,7 @@ class _DevFilesPatentPriorArtFinder:
         tokenized = word_tokenize(string)
         return [word for word in tokenized if not word.lower() in stop_words]
 
-    def _getEmbeding(self,file):
+    def _getEmbedding(self, file):
         dataframe= pd.io.json.read_json(file, orient = 'records')
         text_tokens = dataframe['Tokens']
         citation_tokens = dataframe['TokenizedCitations']
@@ -133,10 +146,9 @@ class _DevFilesPatentPriorArtFinder:
         new_tfidf_vector = self.tfidf_vectorizer.transform(token_string)
         return new_tfidf_vector.toarray().tolist()
 
-    def sep(self,path):
-        def sep(path):
-            head, tail = os.path.split(path.path)
-            return head + "\emb" + tail
+    def sep(self,entry):
+        head, tail = os.path.split(entry.path)
+        return head + "\emb\\" + tail
 
 
 
@@ -183,11 +195,13 @@ class _DevFilesPatentPriorArtFinder:
         sum = np.concatenate((sum_words,sum_citations))
         newPatentSeries['Word2Vec']= sum
         matches = []
-        for file in os.scandir(dirPath):
-            dataframe = pd.io.json.read_json(file, orient='records')
-            for index,doc in dataframe.iterrows():
-                print(doc['Word2Vec'])
-                print(newPatentSeries['Word2Vec'])
-                if self.cosineSimilarity(newPatentSeries['Word2Vec'], doc['Word2Vec']) >= threshold:
-                    matches.append(doc)
+        for file in os.scandir(dirPath+"\emb"):
+            if file.is_file(): # To avoid entering the emb directory
+                print("reading "+str(file))
+                dataframe = pd.io.json.read_json(file, orient='records',lines=True)
+                for index,doc in dataframe.iterrows():
+                    print(doc['Word2Vec'])
+                    print(newPatentSeries['Word2Vec'])
+                    if self.cosineSimilarity(newPatentSeries['Word2Vec'], doc['Word2Vec']) >= threshold:
+                        matches.append(doc)
         return matches
