@@ -59,7 +59,10 @@ class _DevFilesPatentPriorArtFinder:
 
     # Private methods for train to call
     def _makeModel(self,file):
-        dataframe= pd.io.json.read_json(file, orient = 'records',lines=True)
+        try:
+            dataframe= pd.io.json.read_json(file, orient = 'records', lines=True)
+        except:
+            dataframe= pd.io.json.read_json(file, orient = 'records')
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
         self._tfidf_make(dataframe['Tokens'])
@@ -72,7 +75,10 @@ class _DevFilesPatentPriorArtFinder:
         self.model_citations = model_citations
 
     def _addtoModel(self,file):
-        dataframe= pd.io.json.read_json(file, orient = 'records')
+        try:
+            dataframe= pd.io.json.read_json(file, orient = 'records', lines=True)
+        except:
+            dataframe= pd.io.json.read_json(file, orient = 'records')
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
         self._tfidf_make(dataframe['Tokens'])
@@ -111,7 +117,10 @@ class _DevFilesPatentPriorArtFinder:
         return [word for word in tokenized if not word.lower() in stop_words]
 
     def _getEmbedding(self, file):
-        dataframe= pd.io.json.read_json(file, orient = 'records')
+        try:
+            dataframe= pd.io.json.read_json(file, orient = 'records', lines=True)
+        except:
+            dataframe= pd.io.json.read_json(file, orient = 'records')
         text_tokens = dataframe['Tokens']
         citation_tokens = dataframe['TokenizedCitations']
         dataframe['TF-IDF'] = self._tfidf_embed(dataframe['Tokens'])
@@ -198,7 +207,10 @@ class _DevFilesPatentPriorArtFinder:
         for file in os.scandir(dirPath+"\emb"):
             if file.is_file(): # To avoid entering the emb directory
                 print("reading "+str(file))
-                dataframe = pd.io.json.read_json(file, orient='records',lines=True)
+                try:
+                    dataframe = pd.io.json.read_json(file, orient='records', lines=True)
+                except:
+                    dataframe = pd.io.json.read_json(file, orient='records')
                 for index,doc in dataframe.iterrows():
                     print(doc['Word2Vec'])
                     print(newPatentSeries['Word2Vec'])
