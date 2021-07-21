@@ -40,9 +40,9 @@ class _DevFilesPatentPriorArtFinder:
         # Once to save the tokenization column to the file, and adds the file to the model's training
         # 2nd time to append the w2v encodings generated from the fully trained model to the files.
         first=True
-        for unparsed_entry in os.scandir(self.dirPath):
-            if self.is_gz_file(unparsed_entry): # To avoid entering the emb directory
-                entry = self._parseGzip(unparsed_entry)
+        for entry in os.scandir(self.dirPath):
+            if self.is_gz_file(entry): # To avoid entering the emb directory
+                #entry = self._parseGzip(unparsed_entry)
                 #print("tokenizing "+str(entry))
                 #Testing for git purposes
                 if(first):
@@ -60,18 +60,24 @@ class _DevFilesPatentPriorArtFinder:
 
     def _parseGzip(self, gzip_file):
         with gzip.GzipFile(gzip_file, 'r', ) as fin:
-            data = []
-            for line in fin:
-                data.append(json.loads(line.decode('utf-8')))
-            new_json = json.dumps(data)
+            new_json = json.loads(fin.read().decode('utf-8'))
+            # data = []
+            # for line in fin:
+            #     data.append(json.loads(line.decode('utf-8')))
+            # new_json = json.dumps(data)
         return new_json
+
+
     def is_gz_file(self, filepath):
         with open(filepath, 'rb') as test_f:
             return test_f.read(2) == b'\x1f\x8b'
+
+
     # Private methods for train to call
     def _makeModel(self,file):
         try:
-            dataframe= pd.io.json.read_json(file, orient = 'records', lines=True)
+            dataframe= pd.read_json(file, orient = 'records', compression="gzip")
+            print("here22 after")
         except:
             print('here before dataframe')
             dataframe= pd.DataFrame.from_records(file)
@@ -85,6 +91,8 @@ class _DevFilesPatentPriorArtFinder:
         self.model_words = model_words
         model_citations = Word2Vec(dataframe['TokenizedCitations'], min_count=1)
         self.model_citations = model_citations
+
+
     def _addtoModel(self,file):
         print('here2')
         try:
@@ -101,6 +109,8 @@ class _DevFilesPatentPriorArtFinder:
         self.model_words.train(dataframe["Tokens"], total_examples= self.model_citations.corpus_count, epochs=self.model_words.epochs)
         self.model_words.build_vocab(dataframe["TokenizedCitations"], update=True)
         self.model_citations.train(dataframe['TokenizedCitations'], total_examples= self.model_citations.corpus_count, epochs=self.model_citations.epochs)
+
+
     def _tokenizeCitation(self, string):
         no_commas = string.replace(',',' ')
         tokenized = word_tokenize(no_commas)
@@ -109,11 +119,15 @@ class _DevFilesPatentPriorArtFinder:
             str = self._takeAwaySuffix(token)
             finished.append(str)
         return list(set(finished))
+
+
     def _takeAwaySuffix(self, string):
         tokens = string.split('-')
         # Should always have at least a prefix and the patent, this will take away the suffix or keep it the same
         return str(tokens[0] + '-' + tokens[1])
     # Will add column to dataframe called 'Tokens'
+
+
     def _tokenizeText(self, string):
         #prepares the string for tokenization, to lowercase, then removes punctutation, then changes numbers to _NUM_
         string = string.lower()
@@ -148,17 +162,26 @@ class _DevFilesPatentPriorArtFinder:
         vec_frame =  pd.DataFrame(dataframe[self.id_col])
         vec_frame['Word2Vec'] = vecs
         vec_frame.to_json(self.get(file,"w2v"), orient = 'records', indent=4)
+
+
+
     def _tfidf_make(self, tokens):
         token_string = [" ".join(one_list) for one_list in tokens.tolist()]
         self.tfidf_vectorizer.fit(token_string)
+
+
     def _tfidf_embed(self, tokens):
         token_string = [" ".join(one_list) for one_list in tokens.tolist()]
         new_tfidf_vector = self.tfidf_vectorizer.transform(token_string)
         return new_tfidf_vector.toarray().tolist()
+
+
     @staticmethod
     def get(entry, folder):
         head, tail = os.path.split(entry.path)
         return head + "\\"+folder+"\\" + tail
+
+
     def cosineSimilarity(self, patent1, patent2):
         """
         Computes the cosine similarity of 2 patents. Used in CompareNewPatent below.
