@@ -44,6 +44,7 @@ class _DevFilesPatentPriorArtFinder:
             if self.is_gz_file(unparsed_entry): # To avoid entering the emb directory
                 entry = self._parseGzip(unparsed_entry)
                 #print("tokenizing "+str(entry))
+                #Testing for git purposes
                 if(first):
                     self._makeModel(entry)
                     first = False
@@ -56,6 +57,7 @@ class _DevFilesPatentPriorArtFinder:
                 print("getting embedding of "+str(entry))
                 self._makeEmbeddings(entry)
         print("Embeddings completed")
+
     def _parseGzip(self, gzip_file):
         with gzip.GzipFile(gzip_file, 'r', ) as fin:
             data = []
