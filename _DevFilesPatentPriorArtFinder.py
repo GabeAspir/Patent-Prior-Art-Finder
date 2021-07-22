@@ -5,13 +5,16 @@ import re
 import os
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer
 from gensim.models import Word2Vec
+from gensim import models
+from gensim.corpora import Dictionary
+from timeit import default_timer as timer
 import gzip
 import json
 
 class _DevFilesPatentPriorArtFinder:
     def __init__(self, dirPath, publicationNumberColumnString='Publication_Number', comparisonColumnString='Abstract', cit_col= "Citations"):
+        startTime = timer()
         self.corpus = []
         self.number_of_patents_with_word = {}
         self.plain_dataframe = None
@@ -19,7 +22,8 @@ class _DevFilesPatentPriorArtFinder:
         self.word_count_matrix = None
         self.model_words = None
         self.model_citations = None
-        self.tfidf_vectorizer = TfidfVectorizer(use_idf=True)
+        self.tfidf_gensim = models.TfidfModel()
+        self.dictionary = Dictionary()
         self.dirPath= dirPath
         if dirPath is None:
             raise IOError('The passed file path was empty')
@@ -31,8 +35,11 @@ class _DevFilesPatentPriorArtFinder:
         try:
             os.mkdir(dirPath+"\meta")
             os.mkdir(dirPath+"\w2v")
+            os.mkdir(dirPath+"\other")
         except:
+            print("Didn't make directories")
             pass
+        print("Initialization complete T="+str(timer()))
 
     def train(self):
         # Iterates over the files in the directory twice.
@@ -44,21 +51,15 @@ class _DevFilesPatentPriorArtFinder:
             if entry.is_file():    # To avoid entering the directories
                 print("tokenizing "+ str((entry)))
                 self._makeModel(entry,first)
-        print("Tokenization Completed")
+        print("Tokenization Completed T="+str(timer()))
 
         for entry in os.scandir(self.dirPath):
             if entry.is_file():
-                print("getting embedding of "+str(entry))
+                print("getting embedding of "+str(entry)+" T="+str(timer()))
                 self._makeEmbeddings(entry)
-        print("Embeddings completed")
+        print("Embeddings completed"+str(timer()))
+        self.dictionary.save_as_text(self.dirPath + "\other\\dict.txt")
 
-    def _parseGzip(self, gzip_file):
-        with gzip.GzipFile(gzip_file, 'r', ) as fin:
-            data = []
-            for line in fin:
-                data.append(json.loads(line.decode('utf-8')))
-            new_json = json.dumps(data)
-        return new_json
     def is_gz_file(self, filepath):
         with open(filepath, 'rb') as test_f:
             return test_f.read(2) == b'\x1f\x8b'
@@ -68,13 +69,19 @@ class _DevFilesPatentPriorArtFinder:
         try:
             dataframe= pd.io.json.read_json(file,compression="gzip")
         except:
-            print('here before dataframe')
-            dataframe= pd.DataFrame.from_records(file)
-            print(dataframe)
-            print('here after dataframe')
+            #print('here before dataframe')
+            dataframe= pd.io.json.read_json(file,compression="gzip",lines=True)
+            #dataframe= pd.DataFrame.from_records(file)
+            #print(dataframe)
+            #print('here after dataframe')
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
-        self._tfidf_make(dataframe['Tokens'])
+        words = 0
+        for index,doc in dataframe.iterrows():
+            words += len(doc["Tokens"])
+        print(str(file)+" has "+ str(words) +" word tokens")
+        self.dictionary.add_documents(dataframe['Tokens'])
+
         print("Writing "+str(file))
         dataframe.to_json(self.get(file,"meta"), orient='records', indent=4)
 
@@ -98,13 +105,15 @@ class _DevFilesPatentPriorArtFinder:
         tokenized = word_tokenize(no_commas)
         finished = []
         for token in tokenized:
-            str = self._takeAwaySuffix(token)
+            str = self._removeSuffix(token)
             finished.append(str)
         return list(set(finished))
-    def _takeAwaySuffix(self, string):
+
+    def _removeSuffix(self, string):
         tokens = string.split('-')
         # Should always have at least a prefix and the patent, this will take away the suffix or keep it the same
         return str(tokens[0] + '-' + tokens[1])
+
     # Will add column to dataframe called 'Tokens'
     def _tokenizeText(self, string):
         #prepares the string for tokenization, to lowercase, then removes punctutation, then changes numbers to _NUM_
@@ -121,8 +130,12 @@ class _DevFilesPatentPriorArtFinder:
             dataframe= pd.io.json.read_json(self.get(file,"meta"), orient = 'records', lines=True)
         except:
             dataframe= pd.io.json.read_json(self.get(file,"meta"), orient = 'records')
-        dataframe['TF-IDF'] = self._tfidf_embed(dataframe['Tokens'])
+
+        corpus = [self.dictionary.doc2bow(line) for line in dataframe['Tokens']]
+        self.tfidf_gensim = models.TfidfModel(corpus)
+        dataframe["TF-IDF"] = [self.tfidf_gensim[corpus[x]] for x in range(0, len(corpus))]
         dataframe.to_json(self.get(file,"meta"), orient = 'records', indent=4)
+
         vecs =[]
         for (tokenList, citationList) in zip(dataframe['Tokens'], dataframe['TokenizedCitations']):
             sum_words = np.empty(50)
@@ -142,17 +155,6 @@ class _DevFilesPatentPriorArtFinder:
         vec_frame =  pd.DataFrame(dataframe[self.id_col])
         vec_frame['Word2Vec'] = vecs
         vec_frame.to_json(self.get(file,"w2v"), orient = 'records', indent=4)
-
-
-    def _tfidf_make(self, tokens):
-        token_string = [" ".join(one_list) for one_list in tokens.tolist()]
-        self.tfidf_vectorizer.fit(token_string)
-
-
-    def _tfidf_embed(self, tokens):
-        token_string = [" ".join(one_list) for one_list in tokens.tolist()]
-        new_tfidf_vector = self.tfidf_vectorizer.transform(token_string)
-        return new_tfidf_vector.toarray().tolist()
 
 
     @staticmethod
@@ -199,6 +201,7 @@ class _DevFilesPatentPriorArtFinder:
                 pass
         sum = np.concatenate((sum_words,sum_citations))
         newPatentSeries['Word2Vec']= sum
+
         matches = []
         for file in os.scandir(dirPath+"\w2v"):
             if file.is_file(): # To avoid entering the emb directory
