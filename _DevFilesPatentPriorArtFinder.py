@@ -60,7 +60,6 @@ class _DevFilesPatentPriorArtFinder:
         print("Embeddings completed"+str(timer()))
         self.dictionary.save_as_text(self.dirPath + "\other\\dict.txt")
 
-
     def is_gz_file(self, filepath):
         with open(filepath, 'rb') as test_f:
             return test_f.read(2) == b'\x1f\x8b'
@@ -136,7 +135,6 @@ class _DevFilesPatentPriorArtFinder:
         self.tfidf_gensim = models.TfidfModel(corpus)
         dataframe["TF-IDF"] = [self.tfidf_gensim[corpus[x]] for x in range(0, len(corpus))]
         dataframe.to_json(self.get(file,"meta"), orient = 'records', indent=4)
-        dataframe.to_csv(r'C:\Users\zacha\OneDrive\Documents\Computer Science\Patent-Prior-Art-Finder\Patent Queries\sampleZipSet\other\df.txt')
         vecs =[]
         for (tokenList, citationList, tfidfList) in zip(dataframe['Tokens'], dataframe['TokenizedCitations'], dataframe["TF-IDF"]):
             sum_words = np.empty(50)
