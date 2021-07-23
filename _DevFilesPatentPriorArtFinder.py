@@ -1,21 +1,20 @@
-from sklearn.metrics.pairwise import cosine_similarity, pairwise_distances
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import numpy as np
 import re
 import os
-import nltk
 from nltk.tokenize import word_tokenize
-from nltk.text import TextCollection
 from nltk.corpus import stopwords
-from sklearn.feature_extraction.text import TfidfVectorizer
 from gensim.models import Word2Vec
+from gensim import models
+from gensim.corpora import Dictionary
+from timeit import default_timer as timer
 import gzip
 import json
-# nltk.download('punkt')
-# nltk.download('stopwords')
+
 class _DevFilesPatentPriorArtFinder:
     def __init__(self, dirPath, publicationNumberColumnString='Publication_Number', comparisonColumnString='Abstract', cit_col= "Citations"):
+        startTime = timer()
         self.corpus = []
         self.number_of_patents_with_word = {}
         self.plain_dataframe = None
@@ -23,111 +22,100 @@ class _DevFilesPatentPriorArtFinder:
         self.word_count_matrix = None
         self.model_words = None
         self.model_citations = None
-        self.tfidf_vectorizer = TfidfVectorizer(use_idf=True)
+        self.tfidf_gensim = models.TfidfModel()
+        self.dictionary = Dictionary()
         self.dirPath= dirPath
         if dirPath is None:
             raise IOError('The passed file path was empty')
         self.id_col = publicationNumberColumnString
         self.txt_col = comparisonColumnString
         self.cit_col = cit_col
+
+        # Create the folders for metadata files, and will pass should an error thown when the directory exists from a previous object
         try:
             os.mkdir(dirPath+"\meta")
             os.mkdir(dirPath+"\w2v")
+            os.mkdir(dirPath+"\other")
         except:
+            print("Didn't make directories")
             pass
+        print("Initialization complete T="+str(timer()))
+
     def train(self):
         # Iterates over the files in the directory twice.
         # Once to save the tokenization column to the file, and adds the file to the model's training
         # 2nd time to append the w2v encodings generated from the fully trained model to the files.
+        print("Training has begun")
         first=True
         for entry in os.scandir(self.dirPath):
-            if self.is_gz_file(entry): # To avoid entering the emb directory
-                #entry = self._parseGzip(unparsed_entry)
-                #print("tokenizing "+str(entry))
-                #Testing for git purposes
-                if(first):
-                    self._makeModel(entry)
-                    first = False
-                else:
-                    self._addtoModel(entry)
-        print("Tokenization Completed")
-        for unparsed_entry in os.scandir(self.dirPath):
-            if self.is_gz_file(unparsed_entry): # To avoid entering the emb directory
-                entry = self._parseGzip(unparsed_entry)
-                print("getting embedding of "+str(entry))
-                self._makeEmbeddings(entry)
-        print("Embeddings completed")
+            if entry.is_file():    # To avoid entering the directories
+                print("tokenizing "+ str((entry)))
+                self._makeModel(entry,first)
+        print("Tokenization Completed T="+str(timer()))
 
-    def _parseGzip(self, gzip_file):
-        with gzip.GzipFile(gzip_file, 'r', ) as fin:
-            new_json = json.loads(fin.read().decode('utf-8'))
-            # data = []
-            # for line in fin:
-            #     data.append(json.loads(line.decode('utf-8')))
-            # new_json = json.dumps(data)
-        return new_json
+        for entry in os.scandir(self.dirPath):
+            if entry.is_file():
+                print("getting embedding of "+str(entry)+" T="+str(timer()))
+                self._makeEmbeddings(entry)
+        print("Embeddings completed"+str(timer()))
+        self.dictionary.save_as_text(self.dirPath + "\other\\dict.txt")
 
 
     def is_gz_file(self, filepath):
         with open(filepath, 'rb') as test_f:
             return test_f.read(2) == b'\x1f\x8b'
 
-
     # Private methods for train to call
-    def _makeModel(self,file):
+    def _makeModel(self,file, first):
         try:
-            dataframe= pd.read_json(file, orient = 'records', compression="gzip")
-            print("here22 after")
+            dataframe= pd.io.json.read_json(file,compression="gzip")
         except:
-            print('here before dataframe')
-            dataframe= pd.DataFrame.from_records(file)
-            print('here after dataframe')
+            #print('here before dataframe')
+            dataframe= pd.io.json.read_json(file,compression="gzip",lines=True)
+            #dataframe= pd.DataFrame.from_records(file)
+            #print(dataframe)
+            #print('here after dataframe')
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
-        self._tfidf_make(dataframe['Tokens'])
+        words = 0
+        for index,doc in dataframe.iterrows():
+            words += len(doc["Tokens"])
+        print(str(file)+" has "+ str(words) +" word tokens")
+        self.dictionary.add_documents(dataframe['Tokens'])
+
         print("Writing "+str(file))
         dataframe.to_json(self.get(file,"meta"), orient='records', indent=4)
-        model_words = Word2Vec(dataframe['Tokens'])
-        self.model_words = model_words
-        model_citations = Word2Vec(dataframe['TokenizedCitations'], min_count=1)
-        self.model_citations = model_citations
 
-
-    def _addtoModel(self,file):
-        print('here2')
-        try:
-            dataframe= pd.io.json.read_json(file, orient = 'records', lines=True)
-        except:
-            dataframe = pd.DataFrame.from_records(file)
-            print('here')
-        dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
-        dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
-        self._tfidf_make(dataframe['Tokens'])
-        print("Writing "+str(file))
-        dataframe.to_json(self.get(file, "meta"), orient='records', indent=4)
-        self.model_words.build_vocab(dataframe["Tokens"], update = True)
-        self.model_words.train(dataframe["Tokens"], total_examples= self.model_citations.corpus_count, epochs=self.model_words.epochs)
-        self.model_words.build_vocab(dataframe["TokenizedCitations"], update=True)
-        self.model_citations.train(dataframe['TokenizedCitations'], total_examples= self.model_citations.corpus_count, epochs=self.model_citations.epochs)
-
+        if first:
+            first= False
+            model_words = Word2Vec(dataframe['Tokens'])
+            self.model_words = model_words
+            model_citations = Word2Vec(dataframe['TokenizedCitations'], min_count=1)
+            self.model_citations = model_citations
+        else:
+            self.model_words.build_vocab(dataframe["Tokens"], update=True)
+            self.model_words.train(dataframe["Tokens"], total_examples=self.model_citations.corpus_count,
+                                   epochs=self.model_words.epochs)
+            self.model_words.build_vocab(dataframe["TokenizedCitations"], update=True)
+            self.model_citations.train(dataframe['TokenizedCitations'],
+                                       total_examples=self.model_citations.corpus_count,
+                                       epochs=self.model_citations.epochs)
 
     def _tokenizeCitation(self, string):
         no_commas = string.replace(',',' ')
         tokenized = word_tokenize(no_commas)
         finished = []
         for token in tokenized:
-            str = self._takeAwaySuffix(token)
+            str = self._removeSuffix(token)
             finished.append(str)
         return list(set(finished))
 
-
-    def _takeAwaySuffix(self, string):
+    def _removeSuffix(self, string):
         tokens = string.split('-')
         # Should always have at least a prefix and the patent, this will take away the suffix or keep it the same
         return str(tokens[0] + '-' + tokens[1])
+
     # Will add column to dataframe called 'Tokens'
-
-
     def _tokenizeText(self, string):
         #prepares the string for tokenization, to lowercase, then removes punctutation, then changes numbers to _NUM_
         string = string.lower()
@@ -136,20 +124,29 @@ class _DevFilesPatentPriorArtFinder:
         stop_words = set(stopwords.words("english"))
         tokenized = word_tokenize(string)
         return [word for word in tokenized if not word.lower() in stop_words]
+
+
     def _makeEmbeddings(self, file):
         try:
             dataframe= pd.io.json.read_json(self.get(file,"meta"), orient = 'records', lines=True)
         except:
             dataframe= pd.io.json.read_json(self.get(file,"meta"), orient = 'records')
-        dataframe['TF-IDF'] = self._tfidf_embed(dataframe['Tokens'])
+
+        corpus = [self.dictionary.doc2bow(line) for line in dataframe['Tokens']]
+        self.tfidf_gensim = models.TfidfModel(corpus)
+        dataframe["TF-IDF"] = [self.tfidf_gensim[corpus[x]] for x in range(0, len(corpus))]
         dataframe.to_json(self.get(file,"meta"), orient = 'records', indent=4)
+        dataframe.to_csv(r'C:\Users\zacha\OneDrive\Documents\Computer Science\Patent-Prior-Art-Finder\Patent Queries\sampleZipSet\other\df.txt')
         vecs =[]
-        for (tokenList, citationList) in zip(dataframe['Tokens'], dataframe['TokenizedCitations']):
+        for (tokenList, citationList, tfidfList) in zip(dataframe['Tokens'], dataframe['TokenizedCitations'], dataframe["TF-IDF"]):
             sum_words = np.empty(50)
             sum_citations = np.empty(50)
+            tfidfDict = dict(tfidfList)
             for word in tokenList:
+                index = self.dictionary.token2id.get(word)
+                tfidfValue = tfidfDict.get(index)
                 try:
-                    sum_words += self.model_words.wv[word]
+                    sum_words += ((self.model_words.wv[word]) * tfidfValue)
                 except:
                     pass
             for citation in citationList:
@@ -164,23 +161,10 @@ class _DevFilesPatentPriorArtFinder:
         vec_frame.to_json(self.get(file,"w2v"), orient = 'records', indent=4)
 
 
-
-    def _tfidf_make(self, tokens):
-        token_string = [" ".join(one_list) for one_list in tokens.tolist()]
-        self.tfidf_vectorizer.fit(token_string)
-
-
-    def _tfidf_embed(self, tokens):
-        token_string = [" ".join(one_list) for one_list in tokens.tolist()]
-        new_tfidf_vector = self.tfidf_vectorizer.transform(token_string)
-        return new_tfidf_vector.toarray().tolist()
-
-
     @staticmethod
     def get(entry, folder):
         head, tail = os.path.split(entry.path)
         return head + "\\"+folder+"\\" + tail
-
 
     def cosineSimilarity(self, patent1, patent2):
         """
@@ -200,6 +184,8 @@ class _DevFilesPatentPriorArtFinder:
         v1 = np.array(patent1).reshape(1, -1)
         v2 = np.array(patent2).reshape(1, -1)
         return cosine_similarity(v1, v2)[0][0]
+
+
     # Comparing new patent based on TF-IDF/Cosine Similarity
     # dataframe must have TF-IDF column
     def compareNewPatent(self, newPatentSeries, dirPath, threshold):
@@ -219,6 +205,7 @@ class _DevFilesPatentPriorArtFinder:
                 pass
         sum = np.concatenate((sum_words,sum_citations))
         newPatentSeries['Word2Vec']= sum
+
         matches = []
         for file in os.scandir(dirPath+"\w2v"):
             if file.is_file(): # To avoid entering the emb directory
