@@ -11,6 +11,9 @@ from gensim.corpora import Dictionary
 from timeit import default_timer as timer
 import gzip
 import json
+import nltk.downloader
+nltk.download('stopwords')
+
 
 class _DevFilesPatentPriorArtFinder:
     def __init__(self, dirPath, publicationNumberColumnString='Publication_Number', comparisonColumnString='Abstract', cit_col= "Citations"):
@@ -139,12 +142,14 @@ class _DevFilesPatentPriorArtFinder:
         for (tokenList, citationList, tfidfList) in zip(dataframe['Tokens'], dataframe['TokenizedCitations'], dataframe["TF-IDF"]):
             sum_words = np.empty(50)
             sum_citations = np.empty(50)
+            sum_tfidf = np.empty(50)
             tfidfDict = dict(tfidfList)
             for word in tokenList:
                 index = self.dictionary.token2id.get(word)
                 tfidfValue = tfidfDict.get(index)
                 try:
-                    sum_words += ((self.model_words.wv[word]) * tfidfValue)
+                    sum_words += ((self.model_words.wv[word]))
+                    #sum_tfidf += [val * tfidfValue for val in self.model_words.wv[word]]
                 except:
                     pass
             for citation in citationList:
@@ -191,9 +196,20 @@ class _DevFilesPatentPriorArtFinder:
         newPatentSeries['TokenizedCitations']= self._tokenizeCitation(string=newPatentSeries['Citations'])
         sum_words = np.empty(50)
         sum_citations = np.empty(50)
+        sum_tfidf = np.empty(50)
+
+        txtFile = dirPath + "\other\dict.txt"
+        dct = Dictionary.load_from_text(txtFile)
+        tfidf_model = models.TfidfModel(dictionary=dct)
+        tfidf_vector = tfidf_model[dct.doc2bow(newPatentSeries['Tokens'])]
+        tfidfDict = dict(tfidf_vector)
+
         for word in newPatentSeries['Tokens']:
+            index = dct.token2id.get(word)
+            tfidfValue = tfidfDict.get(index)
             try:
                 sum_words += self.model_words.wv[word]
+                #sum_tfidf += [val * tfidfValue for val in self.model_words.wv[word]]
             except:
                 pass
         for citation in newPatentSeries['TokenizedCitations']:
