@@ -23,7 +23,7 @@ class _DevFilesPatentPriorArtFinder:
         self.model_words = None
         self.model_citations = None
         self.tfidf_gensim = models.TfidfModel()
-        self.dictionary = Dictionary()
+        self.dictionary = None
         self.dirPath= dirPath
         if dirPath is None:
             raise IOError('The passed file path was empty')
@@ -46,6 +46,7 @@ class _DevFilesPatentPriorArtFinder:
         # Once to save the tokenization column to the file, and adds the file to the model's training
         # 2nd time to append the w2v encodings generated from the fully trained model to the files.
         print("Training has begun")
+        self.dictionary= Dictionary()
         first=True
         for entry in os.scandir(self.dirPath):
             if entry.is_file():    # To avoid entering the directories
@@ -136,15 +137,18 @@ class _DevFilesPatentPriorArtFinder:
         dataframe["TF-IDF"] = [self.tfidf_gensim[corpus[x]] for x in range(0, len(corpus))]
         dataframe.to_json(self.get(file,"meta"), orient = 'records', indent=4)
         vecs =[]
+        vecs_tf = []
         for (tokenList, citationList, tfidfList) in zip(dataframe['Tokens'], dataframe['TokenizedCitations'], dataframe["TF-IDF"]):
             sum_words = np.empty(50)
+            tfidf_sum = np.empty(50)
             sum_citations = np.empty(50)
             tfidfDict = dict(tfidfList)
             for word in tokenList:
                 index = self.dictionary.token2id.get(word)
                 tfidfValue = tfidfDict.get(index)
                 try:
-                    sum_words += ((self.model_words.wv[word]) * tfidfValue)
+                    tfidf_sum += [val * tfidfValue for val in self.model_words.wv[word]]
+                    sum_words += (self.model_words.wv[word])
                 except:
                     pass
             for citation in citationList:
@@ -154,8 +158,11 @@ class _DevFilesPatentPriorArtFinder:
                     pass
             sum = np.concatenate((sum_words,sum_citations))
             vecs.append(sum)
+            sum = np.concatenate((tfidf_sum,sum_citations))
+            vecs_tf.append(sum)
         vec_frame =  pd.DataFrame(dataframe[self.id_col])
         vec_frame['Word2Vec'] = vecs
+        vec_frame['w2v Modified']= vecs_tf
         vec_frame.to_json(self.get(file,"w2v"), orient = 'records', indent=4)
 
 
@@ -190,9 +197,14 @@ class _DevFilesPatentPriorArtFinder:
         newPatentSeries['Tokens'] = self._tokenizeText(string=newPatentSeries['Abstract'])
         newPatentSeries['TokenizedCitations']= self._tokenizeCitation(string=newPatentSeries['Citations'])
         sum_words = np.empty(50)
+        sum_tfidf= np.empty(50)
         sum_citations = np.empty(50)
+        if(self.tfidf_gensim is None):
+            self.tfidf_gensim = Dictionary.load_from_text(dirPath+"\other\dict.txt")
+
         for word in newPatentSeries['Tokens']:
             try:
+                sum_tfidf += [val * tfidfValue for val in self.model_words.wv[word]]
                 sum_words += self.model_words.wv[word]
             except:
                 pass
