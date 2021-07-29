@@ -1,3 +1,4 @@
+import numpy
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import numpy as np
@@ -148,13 +149,13 @@ class _DevFilesPatentPriorArtFinder:
                 index = self.dictionary.token2id.get(word)
                 tfidfValue = tfidfDict.get(index)
                 try:
-                    sum_words += ((self.model_words.wv[word]))
+                    numpy.add(sum_words ,self.model_words.wv[word])
                     #sum_tfidf += [val * tfidfValue for val in self.model_words.wv[word]]
                 except:
                     pass
             for citation in citationList:
                 try:
-                    sum_citations += self.model_citations.wv[citation]
+                    numpy.add(sum_citations,self.model_citations.wv[citation])
                 except:
                     pass
             sum = np.concatenate((sum_words,sum_citations))
@@ -208,13 +209,13 @@ class _DevFilesPatentPriorArtFinder:
             index = dct.token2id.get(word)
             tfidfValue = tfidfDict.get(index)
             try:
-                sum_words += self.model_words.wv[word]
+                numpy.add(sum_words,self.model_words.wv[word])
                 #sum_tfidf += [val * tfidfValue for val in self.model_words.wv[word]]
             except:
                 pass
         for citation in newPatentSeries['TokenizedCitations']:
             try:
-                sum_citations += self.model_citations.wv[citation]
+                numpy.add(sum_citations,self.model_citations.wv[citation])
             except:
                 pass
         sum = np.concatenate((sum_words,sum_citations))
