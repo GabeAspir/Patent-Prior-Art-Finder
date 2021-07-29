@@ -1,4 +1,5 @@
 import numpy
+import scipy.spatial.distance
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
 import numpy as np
@@ -80,10 +81,10 @@ class _DevFilesPatentPriorArtFinder:
             #print('here after dataframe')
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
-        words = 0
-        for index,doc in dataframe.iterrows():
-            words += len(doc["Tokens"])
-        print(str(file)+" has "+ str(words) +" word tokens")
+        # words = 0
+        # for index,doc in dataframe.iterrows():
+        #     words += len(doc["Tokens"])
+        # print(str(file)+" has "+ str(words) +" word tokens")
         self.dictionary.add_documents(dataframe['Tokens'])
 
         print("Writing "+str(file))
@@ -145,14 +146,17 @@ class _DevFilesPatentPriorArtFinder:
             sum_citations = np.empty(50)
             sum_tfidf = np.empty(50)
             tfidfDict = dict(tfidfList)
+            # Create a sum of the words in a given document to create a doc vector
+            # Maintain 2 such vectors: 1 plain, and another where each word vector is multiplied by the word's tfidf weight
             for word in tokenList:
                 index = self.dictionary.token2id.get(word)
                 tfidfValue = tfidfDict.get(index)
                 try:
-                    numpy.add(sum_words ,self.model_words.wv[word])
-                    #sum_tfidf += [val * tfidfValue for val in self.model_words.wv[word]]
-                except:
+                    sum_words= numpy.add(sum_words ,self.model_words.wv[word])
+                    sum_tfidf= numpy.add(sum_tfidf,numpy.multiply(tfidfValue,self.model_words[word]))
+                except: # In case the model does not have a given word, ignore it.
                     pass
+
             for citation in citationList:
                 try:
                     numpy.add(sum_citations,self.model_citations.wv[citation])
@@ -230,8 +234,10 @@ class _DevFilesPatentPriorArtFinder:
                 except:
                     dataframe = pd.io.json.read_json(file, orient='records')
                 for index,doc in dataframe.iterrows():
-                    #print(doc['Word2Vec'])
-                    #print(newPatentSeries['Word2Vec'])
-                    if self.cosineSimilarity(newPatentSeries['Word2Vec'], doc['Word2Vec']) >= threshold:
-                        matches.append(doc)
-        return matches
+                    print(doc['Word2Vec'])
+                    print(newPatentSeries['Word2Vec'])
+                    similarity = 1 - scipy.spatial.distance.cosine(newPatentSeries['Word2Vec'], doc['Word2Vec'])
+                    if similarity >= threshold:
+                        matches.append((similarity, doc))
+        print(str(len(matches))+" Matches found")
+        return sorted(matches, key=lambda similarity: similarity[1], reverse=True)
