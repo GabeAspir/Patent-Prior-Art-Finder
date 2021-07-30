@@ -1,4 +1,3 @@
-import numpy
 import scipy.spatial.distance
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
@@ -92,15 +91,23 @@ class _DevFilesPatentPriorArtFinder:
 
         if first:
             first= False
-            model_words = Word2Vec(dataframe['Tokens'])
+            # TODO: This local model_words seems redundant
+            model_words = Word2Vec(dataframe['Tokens'],vector_size=50)
             self.model_words = model_words
             model_citations = Word2Vec(dataframe['TokenizedCitations'], min_count=1)
             self.model_citations = model_citations
+            self.model_words.build_vocab(dataframe["Tokens"], update=True)
+            self.model_words.train(dataframe["Tokens"], total_examples=self.model_words.corpus_count,
+                                   epochs=self.model_words.epochs)
+            self.model_citations.build_vocab(dataframe["TokenizedCitations"], update=True)
+            self.model_citations.train(dataframe['TokenizedCitations'],
+                                       total_examples=self.model_citations.corpus_count,
+                                       epochs=self.model_citations.epochs)
         else:
             self.model_words.build_vocab(dataframe["Tokens"], update=True)
-            self.model_words.train(dataframe["Tokens"], total_examples=self.model_citations.corpus_count,
+            self.model_words.train(dataframe["Tokens"], total_examples=self.model_words.corpus_count,
                                    epochs=self.model_words.epochs)
-            self.model_words.build_vocab(dataframe["TokenizedCitations"], update=True)
+            self.model_citations.build_vocab(dataframe["TokenizedCitations"], update=True)
             self.model_citations.train(dataframe['TokenizedCitations'],
                                        total_examples=self.model_citations.corpus_count,
                                        epochs=self.model_citations.epochs)
@@ -152,14 +159,14 @@ class _DevFilesPatentPriorArtFinder:
                 index = self.dictionary.token2id.get(word)
                 tfidfValue = tfidfDict.get(index)
                 try:
-                    sum_words= numpy.add(sum_words ,self.model_words.wv[word])
-                    sum_tfidf= numpy.add(sum_tfidf,numpy.multiply(tfidfValue,self.model_words[word]))
+                    sum_words= np.add(sum_words ,self.model_words.wv[word])
+                    sum_tfidf= np.add(sum_tfidf,np.multiply(tfidfValue,self.model_words[word]))
                 except: # In case the model does not have a given word, ignore it.
                     pass
 
             for citation in citationList:
                 try:
-                    numpy.add(sum_citations,self.model_citations.wv[citation])
+                    np.add(sum_citations,self.model_citations.wv[citation])
                 except:
                     pass
             sum = np.concatenate((sum_words,sum_citations))
@@ -170,7 +177,7 @@ class _DevFilesPatentPriorArtFinder:
 
 
     @staticmethod
-    def get(entry, folder):
+    def get(entry, folder): # To easily access the meta-data files in parallel folders
         head, tail = os.path.split(entry.path)
         return head + "\\"+folder+"\\" + tail
 
@@ -213,13 +220,13 @@ class _DevFilesPatentPriorArtFinder:
             index = dct.token2id.get(word)
             tfidfValue = tfidfDict.get(index)
             try:
-                numpy.add(sum_words,self.model_words.wv[word])
+                sum_words= np.add(sum_words,self.model_words.wv[word])
                 #sum_tfidf += [val * tfidfValue for val in self.model_words.wv[word]]
             except:
                 pass
         for citation in newPatentSeries['TokenizedCitations']:
             try:
-                numpy.add(sum_citations,self.model_citations.wv[citation])
+                sum_citations= np.add(sum_citations,self.model_citations.wv[citation])
             except:
                 pass
         sum = np.concatenate((sum_words,sum_citations))
@@ -234,10 +241,14 @@ class _DevFilesPatentPriorArtFinder:
                 except:
                     dataframe = pd.io.json.read_json(file, orient='records')
                 for index,doc in dataframe.iterrows():
-                    print(doc['Word2Vec'])
-                    print(newPatentSeries['Word2Vec'])
-                    similarity = 1 - scipy.spatial.distance.cosine(newPatentSeries['Word2Vec'], doc['Word2Vec'])
+                    # print(doc['Word2Vec'])
+                    # print(newPatentSeries['Word2Vec'])
+                    try:
+                        similarity = 1 - scipy.spatial.distance.cosine(newPatentSeries['Word2Vec'], doc['Word2Vec'])
+                    except:
+                        print("Vec for doc "+doc+" @index "+str(index))
+                        print(doc['Word2Vec'])
                     if similarity >= threshold:
                         matches.append((similarity, doc))
         print(str(len(matches))+" Matches found")
-        return sorted(matches, key=lambda similarity: similarity[1], reverse=True)
+        return sorted(matches, key=lambda similarity: similarity[0], reverse=True)
