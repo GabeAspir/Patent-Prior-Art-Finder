@@ -10,23 +10,15 @@ from gensim.models import Word2Vec
 from gensim import models
 from gensim.corpora import Dictionary
 from timeit import default_timer as timer
-import gzip
-import json
 import nltk.downloader
 nltk.download('stopwords')
 
 
 class _DevFilesPatentPriorArtFinder:
     def __init__(self, dirPath, publicationNumberColumnString='Publication_Number', comparisonColumnString='Abstract', cit_col= "Citations"):
-        startTime = timer()
-        self.corpus = []
-        self.number_of_patents_with_word = {}
-        self.plain_dataframe = None
-        self.dataframe = None
-        self.word_count_matrix = None
+        start_time = timer()
         self.model_words = None
         self.model_citations = None
-        self.tfidf_gensim = models.TfidfModel()
         self.dictionary = Dictionary()
         self.dirPath= dirPath
         if dirPath is None:
@@ -34,7 +26,7 @@ class _DevFilesPatentPriorArtFinder:
         self.id_col = publicationNumberColumnString
         self.txt_col = comparisonColumnString
         self.cit_col = cit_col
-
+        self.old = True
         # Create the folders for metadata files, and will pass should an error thown when the directory exists from a previous object
         try:
             os.mkdir(dirPath+"\meta")
@@ -56,13 +48,16 @@ class _DevFilesPatentPriorArtFinder:
                 print("tokenizing "+ str((entry)))
                 self._makeModel(entry,first)
         print("Tokenization Completed T="+str(timer()))
-
+        self.tfidf_model= models.TfidfModel(dictionary=self.dictionary)
         for entry in os.scandir(self.dirPath):
             if entry.is_file():
                 print("getting embedding of "+str(entry)+" T="+str(timer()))
                 self._makeEmbeddings(entry)
         print("Embeddings completed"+str(timer()))
+        self.model_words.save(self.dirPath + "\other\\model_words.model")
+        self.model_citations.save(self.dirPath + "\other\\model_citations.model")
         self.dictionary.save_as_text(self.dirPath + "\other\\dict.txt")
+        self.old=False
 
     def is_gz_file(self, filepath):
         with open(filepath, 'rb') as test_f:
@@ -73,11 +68,8 @@ class _DevFilesPatentPriorArtFinder:
         try:
             dataframe= pd.io.json.read_json(file,compression="gzip")
         except:
-            #print('here before dataframe')
             dataframe= pd.io.json.read_json(file,compression="gzip",lines=True)
-            #dataframe= pd.DataFrame.from_records(file)
-            #print(dataframe)
-            #print('here after dataframe')
+        #dataframe= pd.DataFrame(index=dataframe[self.id_col])
         dataframe['Tokens'] = dataframe[self.txt_col].apply(self._tokenizeText)
         dataframe['TokenizedCitations'] = dataframe['Citations'].apply(self._tokenizeCitation)
         # words = 0
@@ -96,13 +88,6 @@ class _DevFilesPatentPriorArtFinder:
             self.model_words = model_words
             model_citations = Word2Vec(dataframe['TokenizedCitations'], min_count=1)
             self.model_citations = model_citations
-            self.model_words.build_vocab(dataframe["Tokens"], update=True)
-            self.model_words.train(dataframe["Tokens"], total_examples=self.model_words.corpus_count,
-                                   epochs=self.model_words.epochs)
-            self.model_citations.build_vocab(dataframe["TokenizedCitations"], update=True)
-            self.model_citations.train(dataframe['TokenizedCitations'],
-                                       total_examples=self.model_citations.corpus_count,
-                                       epochs=self.model_citations.epochs)
         else:
             self.model_words.build_vocab(dataframe["Tokens"], update=True)
             self.model_words.train(dataframe["Tokens"], total_examples=self.model_words.corpus_count,
@@ -144,8 +129,9 @@ class _DevFilesPatentPriorArtFinder:
             dataframe= pd.io.json.read_json(self.get(file,"meta"), orient = 'records')
 
         corpus = [self.dictionary.doc2bow(line) for line in dataframe['Tokens']]
-        self.tfidf_gensim = models.TfidfModel(corpus)
-        dataframe["TF-IDF"] = [self.tfidf_gensim[corpus[x]] for x in range(0, len(corpus))]
+        # Replaced with 1 time generation in train() between the loops
+        #self.tfidf_gensim = models.TfidfModel(corpus)
+        dataframe["TF-IDF"] = [self.tfidf_model[corpus[x]] for x in range(0, len(corpus))]
         dataframe.to_json(self.get(file,"meta"), orient = 'records', indent=4)
         vecs =[]
         for (tokenList, citationList, tfidfList) in zip(dataframe['Tokens'], dataframe['TokenizedCitations'], dataframe["TF-IDF"]):
@@ -209,15 +195,18 @@ class _DevFilesPatentPriorArtFinder:
         sum_words = np.empty(50)
         sum_citations = np.empty(50)
         sum_tfidf = np.empty(50)
-
-        txtFile = dirPath + "\other\dict.txt"
-        dct = Dictionary.load_from_text(txtFile)
-        tfidf_model = models.TfidfModel(dictionary=dct)
-        tfidf_vector = tfidf_model[dct.doc2bow(newPatentSeries['Tokens'])]
+        if self.old:
+            dictFile = dirPath + "\other\dict.txt"
+            self.dictionary = Dictionary.load_from_text(dictFile)
+            #self.tfidf_gensim = models.TfidfModel(dictionary=self.dictionary)
+            self.tfidf_model = models.TfidfModel(dictionary=self.dictionary)
+            self.model_words= models.Word2Vec.load(dirPath + "\other\\model_words.model")
+            self.model_citations= models.Word2Vec.load(dirPath + "\other\\model_citations.model")
+        tfidf_vector = self.tfidf_model[self.dictionary.doc2bow(newPatentSeries['Tokens'])]
         tfidfDict = dict(tfidf_vector)
 
         for word in newPatentSeries['Tokens']:
-            index = dct.token2id.get(word)
+            index = self.dictionary.token2id.get(word)
             tfidfValue = tfidfDict.get(index)
             try:
                 sum_words= np.add(sum_words,self.model_words.wv[word])
@@ -231,7 +220,9 @@ class _DevFilesPatentPriorArtFinder:
                 pass
         sum = np.concatenate((sum_words,sum_citations))
         newPatentSeries['Word2Vec']= sum
-
+        print("New pat w2v")
+        print(newPatentSeries["Tokens"])
+        print(sum)
         matches = []
         for file in os.scandir(dirPath+"\w2v"):
             if file.is_file(): # To avoid entering the emb directory
@@ -249,6 +240,8 @@ class _DevFilesPatentPriorArtFinder:
                         print("Vec for doc "+doc+" @index "+str(index))
                         print(doc['Word2Vec'])
                     if similarity >= threshold:
-                        matches.append((similarity, doc))
+                        matches.append(doc)
+                        #matches.append((similarity, doc))
         print(str(len(matches))+" Matches found")
-        return sorted(matches, key=lambda similarity: similarity[0], reverse=True)
+        return matches
+        #return sorted(matches, key=lambda similarity: similarity[0], reverse=True)
