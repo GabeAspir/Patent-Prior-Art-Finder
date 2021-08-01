@@ -190,7 +190,7 @@ class _DevFilesPatentPriorArtFinder:
         # print('before')
         # print(self.model_words.wv["invention"])
         # print(sum_words)
-        print(self.model_citations.wv["US-2008111420"])
+
         tfidf_vector = self.tfidf_model[self.dictionary.doc2bow(newPatentSeries['Tokens'])]
         tfidfDict = dict(tfidf_vector)
         for word in newPatentSeries['Tokens']:
