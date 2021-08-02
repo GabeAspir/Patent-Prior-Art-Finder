@@ -37,15 +37,17 @@ class _DevFilesPatentPriorArtFinder:
             print("Didn't make directories")
             pass
         print("Initialization complete T="+str(timer()))
+
     def train(self):
         # Iterates over the files in the directory twice.
         # Once to save the tokenization column to the file, and adds the file to the model's training
         # 2nd time to append the w2v encodings generated from the fully trained model to the files.
         print("Training has begun")
+        self.first=True
         for entry in os.scandir(self.dirPath):
             if entry.is_file():    # To avoid entering the directories
                 print("tokenizing "+ str((entry)))
-                self._makeModel(entry,self.first)
+                self._makeModel(entry)
         print("Tokenization Completed T="+str(timer()))
         self.tfidf_model= models.TfidfModel(dictionary=self.dictionary)
         for entry in os.scandir(self.dirPath):
@@ -57,11 +59,13 @@ class _DevFilesPatentPriorArtFinder:
         self.model_citations.save(self.dirPath + "\other\\model_citations.model")
         self.dictionary.save_as_text(self.dirPath + "\other\\dict.txt")
         self.old=False
+
     def is_gz_file(self, filepath):
         with open(filepath, 'rb') as test_f:
             return test_f.read(2) == b'\x1f\x8b'
+
     # Private methods for train to call
-    def _makeModel(self,file, first):
+    def _makeModel(self,file):
         try:
             dataframe= pd.io.json.read_json(file,compression="gzip")
         except:
@@ -74,14 +78,16 @@ class _DevFilesPatentPriorArtFinder:
         #     words += len(doc["Tokens"])
         # print(str(file)+" has "+ str(words) +" word tokens")
         self.dictionary.add_documents(dataframe['Tokens'])
+
         print("Writing "+str(file))
         dataframe.to_json(self.get(file,"meta"), orient='records', indent=4)
-        if first:
+
+        if self.first:
             self.first= False
             # TODO: This local model_words seems redundant
             model_words = Word2Vec(dataframe['Tokens'],vector_size=50)
             self.model_words = model_words
-            model_citations = Word2Vec(dataframe['TokenizedCitations'], min_count=1)
+            model_citations = Word2Vec(dataframe['TokenizedCitations'], min_count=1, vector_size=50)
             self.model_citations = model_citations
         else:
             self.model_words.build_vocab(dataframe["Tokens"], update=True)
@@ -96,10 +102,12 @@ class _DevFilesPatentPriorArtFinder:
             str = self._removeSuffix(token)
             finished.append(str)
         return list(set(finished))
+
     def _removeSuffix(self, string):
         tokens = string.split('-')
         # Should always have at least a prefix and the patent, this will take away the suffix or keep it the same
         return str(tokens[0] + '-' + tokens[1])
+
     # Will add column to dataframe called 'Tokens'
     def _tokenizeText(self, string):
         #prepares the string for tokenization, to lowercase, then removes punctutation, then changes numbers to _NUM_
@@ -109,11 +117,14 @@ class _DevFilesPatentPriorArtFinder:
         stop_words = set(stopwords.words("english"))
         tokenized = word_tokenize(string)
         return [word for word in tokenized if not word.lower() in stop_words]
+
+
     def _makeEmbeddings(self, file):
         try:
             dataframe= pd.io.json.read_json(self.get(file,"meta"), orient = 'records', lines=True)
         except:
             dataframe= pd.io.json.read_json(self.get(file,"meta"), orient = 'records')
+
         corpus = [self.dictionary.doc2bow(line) for line in dataframe['Tokens']]
         # Replaced with 1 time generation in train() between the loops
         #self.tfidf_gensim = models.TfidfModel(corpus)
@@ -138,6 +149,7 @@ class _DevFilesPatentPriorArtFinder:
                     sum_tfidf= np.add(sum_tfidf,np.multiply(tfidfValue,self.model_words[word]))
                 except: # In case the model does not have a given word, ignore it.
                     pass
+
             for citation in citationList:
                 try:
                     sum_citations = np.add(sum_citations,self.model_citations.wv[citation])
@@ -148,10 +160,13 @@ class _DevFilesPatentPriorArtFinder:
         vec_frame =  pd.DataFrame(dataframe[self.id_col])
         vec_frame['Word2Vec'] = vecs
         vec_frame.to_json(self.get(file,"w2v"), orient = 'records', indent=4)
+
+
     @staticmethod
     def get(entry, folder): # To easily access the meta-data files in parallel folders
         head, tail = os.path.split(entry.path)
         return head + "\\"+folder+"\\" + tail
+
     def cosineSimilarity(self, patent1, patent2):
         """
         Computes the cosine similarity of 2 patents. Used in CompareNewPatent below.
@@ -170,6 +185,8 @@ class _DevFilesPatentPriorArtFinder:
         v1 = np.array(patent1).reshape(1, -1)
         v2 = np.array(patent2).reshape(1, -1)
         return cosine_similarity(v1, v2)[0][0]
+
+
     # Comparing new patent based on TF-IDF/Cosine Similarity
     # dataframe must have TF-IDF column
     def compareNewPatent(self, newPatentSeries, dirPath, threshold):
@@ -193,6 +210,7 @@ class _DevFilesPatentPriorArtFinder:
 
         tfidf_vector = self.tfidf_model[self.dictionary.doc2bow(newPatentSeries['Tokens'])]
         tfidfDict = dict(tfidf_vector)
+
         for word in newPatentSeries['Tokens']:
             index = self.dictionary.token2id.get(word)
             tfidfValue = tfidfDict.get(index)
