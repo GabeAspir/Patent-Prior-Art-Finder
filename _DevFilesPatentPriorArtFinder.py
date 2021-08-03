@@ -15,7 +15,7 @@ nltk.download('stopwords')
 
 
 class _DevFilesPatentPriorArtFinder:
-    def __init__(self, dirPath, publicationNumberColumnString='Publication_Number', comparisonColumnString='Abstract', cit_col= "Citations"):
+    def __init__(self, dirPath, publicationNumberColumnString='Publication_Number', comparisonColumnString='Abstract', cit_col= "Citations", tfidf = None):
         start_time = timer()
         self.model_words = None
         self.model_citations = None
@@ -28,11 +28,15 @@ class _DevFilesPatentPriorArtFinder:
         self.cit_col = cit_col
         self.old = True
         self.first = True
+        self.tfidf = tfidf
+
+        if tfidf is not False and tfidf is not True and tfidf is not None:
+            raise Exception('Invalid TFIDF parameter input')
+
         # Create the folders for metadata files, and will pass should an error thown when the directory exists from a previous object
         try:
-            os.mkdir(dirPath+"/meta")
-            os.mkdir(dirPath+"/w2v")
-            os.mkdir(dirPath+"/other")
+            os.mkdir(dirPath+"\meta")
+            os.mkdir(dirPath+"\other")
         except:
             print("Didn't make directories")
             pass
@@ -55,9 +59,9 @@ class _DevFilesPatentPriorArtFinder:
                 print("getting embedding of "+str(entry)+" T="+str(timer()))
                 self._makeEmbeddings(entry)
         print("Embeddings completed"+str(timer()))
-        self.model_words.save(self.dirPath + "/other//model_words.model")
-        self.model_citations.save(self.dirPath + "/other//model_citations.model")
-        self.dictionary.save_as_text(self.dirPath + "/other//dict.txt")
+        self.model_words.save(self.dirPath + "/other/model_words.model")
+        self.model_citations.save(self.dirPath + "/other/model_citations.model")
+        self.dictionary.save_as_text(self.dirPath + "/other/dict.txt")
         self.old=False
 
     def is_gz_file(self, filepath):
@@ -128,16 +132,18 @@ class _DevFilesPatentPriorArtFinder:
         corpus = [self.dictionary.doc2bow(line) for line in dataframe['Tokens']]
         # Replaced with 1 time generation in train() between the loops
         #self.tfidf_gensim = models.TfidfModel(corpus)
-        dataframe["TF-IDF"] = [self.tfidf_model[corpus[x]] for x in range(0, len(corpus))]
-        dataframe.to_json(self.get(file,"meta"), orient = 'records', indent=4)
-        vecs =[]
-        # print("make embeddings")
+        dataframe['TF-IDF'] = [self.tfidf_model[corpus[x]] for x in range(0, len(corpus))]
+        dataframe.to_json(self.get(file,'meta'), orient = 'records', indent=4)
+        word_vecs = []
+        tfidf_vecs= []
+        citations = []
+        # print('make embeddings')
         # print(self.model_words.wv.most_similar('computer', topn=10))
         # print(self.model_words.wv["computer"])
         for (tokenList, citationList, tfidfList) in zip(dataframe['Tokens'], dataframe['TokenizedCitations'], dataframe["TF-IDF"]):
             sum_words = np.zeros(50)
             sum_citations = np.zeros(50)
-            sum_tfidf = np.empty(50)
+            sum_tfidf = np.zeros(50)
             tfidfDict = dict(tfidfList)
             # Create a sum of the words in a given document to create a doc vector
             # Maintain 2 such vectors: 1 plain, and another where each word vector is multiplied by the word's tfidf weight
@@ -145,8 +151,13 @@ class _DevFilesPatentPriorArtFinder:
                 index = self.dictionary.token2id.get(word)
                 tfidfValue = tfidfDict.get(index)
                 try:
-                    sum_words= np.add(sum_words ,self.model_words.wv[word])
-                    sum_tfidf= np.add(sum_tfidf,np.multiply(tfidfValue,self.model_words[word]))
+                    if self.tfidf is None:
+                        sum_words= np.add(sum_words ,self.model_words.wv[word])
+                        sum_tfidf= np.add(sum_tfidf, tfidfValue * np.array(self.model_words.wv[word]))
+                    elif self.tfidf is True:
+                        sum_tfidf = np.add(sum_tfidf, tfidfValue * np.array(self.model_words.wv[word]))
+                    elif self.tfidf is False:
+                        sum_words = np.add(sum_words, self.model_words.wv[word])
                 except: # In case the model does not have a given word, ignore it.
                     pass
 
@@ -155,17 +166,30 @@ class _DevFilesPatentPriorArtFinder:
                     sum_citations = np.add(sum_citations,self.model_citations.wv[citation])
                 except:
                     pass
-            sum = np.concatenate((sum_words,sum_citations))
-            vecs.append(sum)
-        vec_frame =  pd.DataFrame(dataframe[self.id_col])
-        vec_frame['Word2Vec'] = vecs
-        vec_frame.to_json(self.get(file,"w2v"), orient = 'records', indent=4)
+            citations.append(sum_citations)
+            if self.tfidf is None:
+                word_vecs.append(sum_words)
+                tfidf_vecs.append(sum_tfidf)
+            elif self.tfidf is False:
+                word_vecs.append(sum_words)
+            elif self.tfidf:
+                tfidf_vecs.append(sum_tfidf)
+        vec_frame = pd.DataFrame(dataframe[self.id_col])
+        vec_frame['Citations'] = citations
+        if self.tfidf is None:
+            vec_frame['Word2Vec'] = word_vecs
+            vec_frame['tfidf_w2v'] = tfidf_vecs
+        elif self.tfidf is False:
+            vec_frame['Word2Vec'] = word_vecs
+        elif self.tfidf:
+            vec_frame['tfidf_w2v'] = tfidf_vecs
+        vec_frame.to_json(self.get(file,'w2v'), orient = 'records', indent=4)
 
 
     @staticmethod
     def get(entry, folder): # To easily access the meta-data files in parallel folders
         head, tail = os.path.split(entry.path)
-        return head + "/"+folder+"/" + tail
+        return head + '/'+folder+'/' + tail
 
     def cosineSimilarity(self, patent1, patent2):
         """
@@ -189,19 +213,30 @@ class _DevFilesPatentPriorArtFinder:
 
     # Comparing new patent based on TF-IDF/Cosine Similarity
     # dataframe must have TF-IDF column
-    def compareNewPatent(self, newPatentSeries, dirPath, threshold):
+    def compareNewPatent(self, newPatentSeries, dirPath, threshold, use_tfidf=None):
         newPatentSeries['Tokens'] = self._tokenizeText(string=newPatentSeries['Abstract'])
         newPatentSeries['TokenizedCitations']= self._tokenizeCitation(string=newPatentSeries['Citations'])
+        if use_tfidf is not None:
+            self.tfidf= use_tfidf
+        if self.tfidf is None:
+            self.tfidf = True
         sum_words = np.zeros(50)
         sum_citations = np.zeros(50)
-        sum_tfidf = np.empty(50)
+        sum_tfidf = np.zeros(50)
+        print(newPatentSeries["Citations"])
+        if newPatentSeries["Citations"]:
+            use_citations= True
+        else:
+            use_citations = False
+        print("Using citations: "+str(use_citations))
+        print("Using tfidf: "+ str(self.tfidf))
         if self.old:
-            dictFile = dirPath + "/other/dict.txt"
+            dictFile = dirPath + '/other/dict.txt'
             self.dictionary = Dictionary.load_from_text(dictFile)
             #self.tfidf_gensim = models.TfidfModel(dictionary=self.dictionary)
             self.tfidf_model = models.TfidfModel(dictionary=self.dictionary)
-            self.model_words= models.Word2Vec.load(dirPath + "/other/model_words.model")
-            self.model_citations= models.Word2Vec.load(dirPath + "/other/model_citations.model")
+            self.model_words= models.Word2Vec.load(dirPath + '/other/model_words.model')
+            self.model_citations= models.Word2Vec.load(dirPath + '/other/model_citations.model')
             # print("comp new patent")
             # print(self.model_words.wv.most_similar('computer', topn=10))
         # print('before')
@@ -211,12 +246,15 @@ class _DevFilesPatentPriorArtFinder:
         tfidf_vector = self.tfidf_model[self.dictionary.doc2bow(newPatentSeries['Tokens'])]
         tfidfDict = dict(tfidf_vector)
 
+
         for word in newPatentSeries['Tokens']:
             index = self.dictionary.token2id.get(word)
             tfidfValue = tfidfDict.get(index)
             try:
-                sum_words= np.add(sum_words, self.model_words.wv[word])
-                #sum_tfidf += [val * tfidfValue for val in self.model_words.wv[word]]
+                if self.tfidf is True:
+                    sum_tfidf = np.add(sum_tfidf, tfidfValue * np.array(self.model_words.wv[word]))
+                elif self.tfidf is False:
+                    sum_words = np.add(sum_words, self.model_words.wv[word])
             except:
                 pass
         for citation in newPatentSeries['TokenizedCitations']:
@@ -224,13 +262,17 @@ class _DevFilesPatentPriorArtFinder:
                 sum_citations= np.add(sum_citations,self.model_citations.wv[citation])
             except:
                 pass
-        sum = np.concatenate((sum_words,sum_citations))
-        newPatentSeries['Word2Vec']= sum
-        print("New pat w2v")
-        print(newPatentSeries["Tokens"])
-        print(sum)
+
+        # newPatentSeries['Citations'] = sum_citations
+        # if self.tfidf is True:
+        #     sum_tfidf = np.concatenate((sum_tfidf, sum_citations))
+        #     newPatentSeries['Word2Vec'] = sum_tfidf
+        # else:
+        #     sum = np.concatenate((sum_words, sum_citations))
+        #     newPatentSeries['Word2Vec'] = sum
+
         matches = []
-        for file in os.scandir(dirPath+"/w2v"):
+        for file in os.scandir(dirPath+'/w2v'):
             if file.is_file(): # To avoid entering the emb directory
                 print("reading "+str(file))
                 try:
@@ -240,8 +282,22 @@ class _DevFilesPatentPriorArtFinder:
                 for index,doc in dataframe.iterrows():
                     # print(doc['Word2Vec'])
                     # print(newPatentSeries['Word2Vec'])
+                    if use_citations and self.tfidf:
+                        if self.tfidf:
+                            newvec= np.concatenate((sum_tfidf,sum_citations))
+                            vec = np.concatenate((doc['tfidf_w2v'],doc["Citations"]))
+                        else:
+                            newvec= np.concatenate((sum_words,sum_citations))
+                            vec = np.concatenate((doc['Word2Vec'],doc["Citations"]))
+                    else:
+                       if self.tfidf:
+                           newvec = sum_tfidf
+                           vec = doc['tfidf_w2v']
+                       else:
+                            newvec = sum_words
+                            vec= doc['Word2Vec']
                     try:
-                        similarity = 1 - scipy.spatial.distance.cosine(newPatentSeries['Word2Vec'], doc['Word2Vec'])
+                        similarity = 1 - scipy.spatial.distance.cosine(newvec, vec)
                     except:
                         print("Vec for doc "+doc+" @index "+str(index))
                         print(doc['Word2Vec'])
