@@ -1,3 +1,5 @@
+import shutil
+
 import scipy.spatial.distance
 from sklearn.metrics.pairwise import cosine_similarity
 import pandas as pd
@@ -20,7 +22,7 @@ class _DevFilesPatentPriorArtFinder:
         self.model_words = None
         self.model_citations = None
         self.dictionary = Dictionary()
-        self.dirPath= dirPath
+        self.dirPath= os.path.normpath(dirPath)
         if dirPath is None:
             raise IOError('The passed file path was empty')
         self.id_col = publicationNumberColumnString
@@ -34,12 +36,25 @@ class _DevFilesPatentPriorArtFinder:
             raise Exception('Invalid TFIDF parameter input')
 
         # Create the folders for metadata files, and will pass should an error thown when the directory exists from a previous object
+        print(os.path.join(self.dirPath,"meta"))
         try:
-            os.mkdir(dirPath+"\meta")
-            os.mkdir(dirPath+"\other")
+            shutil.rmtree(os.path.join(self.dirPath,"w2v"))
         except:
-            print("Didn't make directories")
             pass
+        try:
+            shutil.rmtree(os.path.join(self.dirPath, "meta"))
+        except:
+            pass
+        try:
+            shutil.rmtree(os.path.join(self.dirPath, "other"))
+        except:
+            pass
+
+        os.mkdir(os.path.join(self.dirPath,"w2v"))
+        os.mkdir(os.path.join(self.dirPath,"other"))
+        os.mkdir(os.path.join(self.dirPath,"meta"))
+            # os.mkdir(dirPath+"/other")
+            # os.mkdir(dirPath+"/w2v")
         print("Initialization complete T="+str(timer()))
 
     def train(self):
@@ -59,9 +74,9 @@ class _DevFilesPatentPriorArtFinder:
                 print("getting embedding of "+str(entry)+" T="+str(timer()))
                 self._makeEmbeddings(entry)
         print("Embeddings completed"+str(timer()))
-        self.model_words.save(self.dirPath + "/other/model_words.model")
-        self.model_citations.save(self.dirPath + "/other/model_citations.model")
-        self.dictionary.save_as_text(self.dirPath + "/other/dict.txt")
+        self.model_words.save(os.path.join (self.dirPath,"other","model_words.model"))
+        self.model_citations.save(os.path.join(self.dirPath,"other","model_citations.model"))
+        self.dictionary.save_as_text(os.path.join(self.dirPath,"other","dict.txt"))
         self.old=False
 
     def is_gz_file(self, filepath):
@@ -189,7 +204,7 @@ class _DevFilesPatentPriorArtFinder:
     @staticmethod
     def get(entry, folder): # To easily access the meta-data files in parallel folders
         head, tail = os.path.split(entry.path)
-        return head + '/'+folder+'/' + tail
+        return os.path.join(head,folder,tail)
 
     def cosineSimilarity(self, patent1, patent2):
         """
@@ -214,6 +229,7 @@ class _DevFilesPatentPriorArtFinder:
     # Comparing new patent based on TF-IDF/Cosine Similarity
     # dataframe must have TF-IDF column
     def compareNewPatent(self, newPatentSeries, dirPath, threshold, use_tfidf=None):
+        dirPath = os.path.normpath(dirPath)
         newPatentSeries['Tokens'] = self._tokenizeText(string=newPatentSeries['Abstract'])
         newPatentSeries['TokenizedCitations']= self._tokenizeCitation(string=newPatentSeries['Citations'])
         if use_tfidf is not None:
@@ -231,12 +247,12 @@ class _DevFilesPatentPriorArtFinder:
         print("Using citations: "+str(use_citations))
         print("Using tfidf: "+ str(self.tfidf))
         if self.old:
-            dictFile = dirPath + '/other/dict.txt'
+            dictFile = os.path.join(dirPath,'other','dict.txt')
             self.dictionary = Dictionary.load_from_text(dictFile)
             #self.tfidf_gensim = models.TfidfModel(dictionary=self.dictionary)
             self.tfidf_model = models.TfidfModel(dictionary=self.dictionary)
-            self.model_words= models.Word2Vec.load(dirPath + '/other/model_words.model')
-            self.model_citations= models.Word2Vec.load(dirPath + '/other/model_citations.model')
+            self.model_words= models.Word2Vec.load(os.path.join(dirPath,'other','model_words.model'))
+            self.model_citations= models.Word2Vec.load(os.path.join(dirPath,'other','model_citations.model'))
             # print("comp new patent")
             # print(self.model_words.wv.most_similar('computer', topn=10))
         # print('before')
@@ -272,7 +288,7 @@ class _DevFilesPatentPriorArtFinder:
         #     newPatentSeries['Word2Vec'] = sum
 
         matches = []
-        for file in os.scandir(dirPath+'/w2v'):
+        for file in os.scandir(os.path.join(dirPath,'w2v')):
             if file.is_file(): # To avoid entering the emb directory
                 print("reading "+str(file))
                 try:
