@@ -17,6 +17,8 @@ And our PowerPoint Presentation here
 
 ## To prior art search, <br> follow this link -
 
+<br>
+
 ## To view the code we used behind our Prior_Art_Finder, </br> follow this link -
 
 
