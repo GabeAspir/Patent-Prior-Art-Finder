@@ -230,7 +230,7 @@ class _DevFilesPatentPriorArtFinder:
 
     # Comparing new patent based on TF-IDF/Cosine Similarity
     # dataframe must have TF-IDF column
-    def compareNewPatent(self, newPatentSeries, dirPath, threshold, use_tfidf=None):
+    def compareNewPatent(self, newPatentSeries, dirPath, threshold, use_tfidf=None,use_citations=True):
         dirPath = os.path.normpath(dirPath)
         newPatentSeries['Tokens'] = self._tokenizeText(string=newPatentSeries['Abstract'])
         newPatentSeries['TokenizedCitations']= self._tokenizeCitation(string=newPatentSeries['Citations'])
@@ -242,10 +242,8 @@ class _DevFilesPatentPriorArtFinder:
         sum_citations = np.zeros(50)
         sum_tfidf = np.zeros(50)
         # print(newPatentSeries["Citations"])
-        if newPatentSeries["Citations"]:
-            use_citations= True
-        else:
-            use_citations = False
+        #if newPatentSeries["Citations"] == "":
+        #    use_citations = False
         print("Using citations: "+str(use_citations))
         print("Using tfidf: "+ str(self.tfidf))
         if self.old:
@@ -331,6 +329,12 @@ class _DevFilesPatentPriorArtFinder:
                         #matches.append((similarity, doc))
         matches = sorted(matches, key=lambda similarity: similarity[0], reverse=True)
         matches = pd.DataFrame(matches, columns=["similarity","Patent Number"])
+        matches["Link"] = [self.get_link(number) for number in matches["Patent Number"]]
         print(str(len(matches))+" Matches found")
         return matches
         #return sorted(matches, key=lambda similarity: similarity[0], reverse=True)
+
+    @staticmethod
+    def get_link(patent_num):
+        num = patent_num.replace('-','')
+        return 'https://patents.google.com/patent/'+num
