@@ -11,12 +11,12 @@ You can watch our YouTube video demo here -
 And our PowerPoint Presentation here 
 
 
-## To pre-train your own model,</br>follow this link 
+## To pre-train your own model,</br>follow this link -
 
 <br>
 
 ## To prior art search, <br> follow this link -
 
-##To view the code we used behind our Prior_Art_Finder, </br>, follow this link -
+## To view the code we used behind our Prior_Art_Finder, </br> follow this link -
 
 
