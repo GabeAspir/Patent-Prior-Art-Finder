@@ -241,7 +241,7 @@ class _DevFilesPatentPriorArtFinder:
         sum_words = np.zeros(50)
         sum_citations = np.zeros(50)
         sum_tfidf = np.zeros(50)
-        print(newPatentSeries["Citations"])
+        # print(newPatentSeries["Citations"])
         if newPatentSeries["Citations"]:
             use_citations= True
         else:
@@ -297,22 +297,29 @@ class _DevFilesPatentPriorArtFinder:
                     dataframe = pd.io.json.read_json(file, orient='records', lines=True)
                 except:
                     dataframe = pd.io.json.read_json(file, orient='records')
+                if use_citations:
+                    if self.tfidf:
+                        newvec = np.concatenate((sum_tfidf, sum_citations))
+                    else:
+                        newvec = np.concatenate((sum_words, sum_citations))
+                else:
+                    if self.tfidf:
+                        newvec = sum_tfidf
+                    else:
+                        newvec = sum_words
+
                 for index,doc in dataframe.iterrows():
                     # print(doc['Word2Vec'])
                     # print(newPatentSeries['Word2Vec'])
-                    if use_citations and self.tfidf:
+                    if use_citations:
                         if self.tfidf:
-                            newvec= np.concatenate((sum_tfidf,sum_citations))
                             vec = np.concatenate((doc['tfidf_w2v'],doc["Citations"]))
                         else:
-                            newvec= np.concatenate((sum_words,sum_citations))
                             vec = np.concatenate((doc['Word2Vec'],doc["Citations"]))
                     else:
                        if self.tfidf:
-                           newvec = sum_tfidf
                            vec = doc['tfidf_w2v']
                        else:
-                            newvec = sum_words
                             vec= doc['Word2Vec']
                     try:
                         similarity = 1 - scipy.spatial.distance.cosine(newvec, vec)
@@ -320,8 +327,10 @@ class _DevFilesPatentPriorArtFinder:
                         print("Vec for doc "+doc+" @index "+str(index))
                         print(doc['Word2Vec'])
                     if similarity >= threshold:
-                        matches.append(doc)
+                        matches.append((similarity,doc['publication_number']))
                         #matches.append((similarity, doc))
+        matches = sorted(matches, key=lambda similarity: similarity[0], reverse=True)
+        matches = pd.DataFrame(matches, columns=["similarity","Patent Number"])
         print(str(len(matches))+" Matches found")
         return matches
         #return sorted(matches, key=lambda similarity: similarity[0], reverse=True)
