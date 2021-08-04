@@ -35,6 +35,12 @@ class _DevFilesPatentPriorArtFinder:
         if tfidf is not False and tfidf is not True and tfidf is not None:
             raise Exception('Invalid TFIDF parameter input')
 
+
+            # os.mkdir(dirPath+"/other")
+            # os.mkdir(dirPath+"/w2v")
+        print("Initialization complete T="+str(timer()))
+
+    def train(self):
         # Create the folders for metadata files, and will pass should an error thown when the directory exists from a previous object
         print(os.path.join(self.dirPath,"meta"))
         try:
@@ -53,11 +59,7 @@ class _DevFilesPatentPriorArtFinder:
         os.mkdir(os.path.join(self.dirPath,"w2v"))
         os.mkdir(os.path.join(self.dirPath,"other"))
         os.mkdir(os.path.join(self.dirPath,"meta"))
-            # os.mkdir(dirPath+"/other")
-            # os.mkdir(dirPath+"/w2v")
-        print("Initialization complete T="+str(timer()))
 
-    def train(self):
         # Iterates over the files in the directory twice.
         # Once to save the tokenization column to the file, and adds the file to the model's training
         # 2nd time to append the w2v encodings generated from the fully trained model to the files.
