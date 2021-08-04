@@ -1,14 +1,8 @@
 from unittest import TestCase
 
-from scipy.constants import pt
-
 from _DevPatentPriorArtFinder import _DevPatentPriorArtFinder as dppaf
 import AlternateMethods as alt
 import pandas as pd
-import re
-import math
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 class Test(TestCase):
