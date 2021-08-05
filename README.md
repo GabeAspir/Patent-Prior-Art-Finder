@@ -8,8 +8,10 @@ You can watch our YouTube video demo here -
 
 <br>
 
-And our PowerPoint Presentation here 
+And our PowerPoint Presentation here -
 
+
+<br>
 
 ## To pre-train your own model,</br>follow this link -
 
